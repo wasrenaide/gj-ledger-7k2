@@ -151,6 +151,34 @@ button{cursor:pointer}
 @keyframes slL{from{opacity:.35;transform:translateX(28px)}to{opacity:1;transform:none}}
 @keyframes slR{from{opacity:.35;transform:translateX(-28px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.sl,.sr{animation:none}}
+.gearrow{display:flex;justify-content:flex-end;margin:-4px 0 8px}
+.gear{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:500}
+.gear:active{background:var(--soft)}
+#setBack{position:fixed;inset:0;z-index:65;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+#setBox{background:var(--card);color:var(--text);width:100%;max-width:560px;max-height:86vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.set-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;position:sticky;top:-14px;background:var(--card);padding:4px 0 8px;z-index:1}
+.set-hd b{font-size:16px}
+.set-hd button{border:0;background:var(--soft);color:var(--text);border-radius:999px;padding:5px 14px;font-size:13px}
+#setBody h4{margin:16px 0 6px;font-size:12px;font-weight:500;color:var(--sub);letter-spacing:.02em}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.srow:first-of-type{border-top:0}
+.srow span small{display:block;font-size:12px;color:var(--sub);margin-top:1px}
+.srow select{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 8px;font-size:16px;max-width:46%}
+.sw{position:relative;flex:none;width:44px;height:26px}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;width:100%;height:100%}
+.sw i{position:absolute;inset:0;border-radius:13px;background:var(--line);transition:background .15s}
+.sw i::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw input:checked+i{background:var(--accent)}
+.sw input:checked+i::after{transform:translateX(18px)}
+.sw input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
+.xrule{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;display:grid;gap:8px}
+.xrule .r1{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.xrule select,.xrule input[type=text],.xrule input[type=number]{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:7px 9px;font-size:16px;min-width:0;width:100%}
+.xrule .r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.xrule label span{display:block;font-size:11px;color:var(--sub);margin-bottom:3px}
+.xrule .del{border:0;background:none;color:var(--over);font-size:13px}
+.xprev{font-size:13px;color:var(--sub);margin:6px 0}
+@media (prefers-reduced-motion:reduce){.sw i,.sw i::after{transition:none}}
 .trpick{display:flex;align-items:center;gap:8px;margin-top:4px}
 .trpick select{flex:1;min-width:0;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 10px;font-size:16px}
 .steps{display:flex;align-items:stretch;gap:4px;margin:2px 0 12px}
@@ -293,6 +321,8 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 
 <div id="helpBack" hidden><div id="helpBox" role="dialog" aria-modal="true" aria-labelledby="helpT"><h3 id="helpT"></h3><p id="helpB"></p><button id="helpX" class="btn pri" type="button" onclick="closeHelp()">닫기</button></div></div>
 
+<div id="setBack" hidden><div id="setBox" role="dialog" aria-modal="true" aria-labelledby="setT"><div class="set-hd"><b id="setT"></b><button id="setX" type="button">닫기</button></div><div id="setBody"></div></div></div>
+
 <div id="toast" role="status" hidden></div>
 
 <div id="loadView" class="empty" hidden>불러오는 중…</div>
@@ -311,6 +341,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
   <main class="wrap">
     <section id="v-sum"></section>
     <section id="v-list" hidden>
+      <div class="gearrow"><button class="gear" type="button" data-gear="list"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>설정</button></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="가맹점·품목 검색" autocomplete="off">
@@ -376,7 +407,7 @@ const isUnv = r => r.ok === false && !IGN.has(igKey("unv", r));
 const isGap = r => !!r.gap && !IGN.has(igKey("gap", r));
 const isMis = r => r.gap === "mismatch" && !IGN.has(igKey("gap", r));
 const isWait = r => r.gap === "waiting" && !IGN.has(igKey("gap", r));
-const needs = r => isUnv(r) || isMis(r);                                   // 확인이 필요한 항목: 검증 안 됨 또는 카드 내역과 불일치
+const needs = r => (pref("c_unv") && isUnv(r)) || (pref("c_mis") && isMis(r)) || (pref("c_wait") && isWait(r));                                   // 확인이 필요한 항목: 검증 안 됨 또는 카드 내역과 불일치
 const ignKeys = r => [...(r.ok === false ? [igKey("unv", r)] : []), ...(r.gap ? [igKey("gap", r)] : [])];
 const dismissed = r => { const k = ignKeys(r); return k.length > 0 && k.every(x => IGN.has(x)); };
 const EYE = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1A9.6 9.6 0 0 1 12 6c5 0 8.5 4 9.5 6a12 12 0 0 1-2.6 3.3M6.6 7.6A12 12 0 0 0 2.5 12c1 2 4.5 6 9.5 6 1.5 0 2.8-.4 4-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
@@ -404,12 +435,28 @@ function ignClick(e) {   // returns true when the click was on an ignore / undo 
   setIgnore(JSON.parse(b.dataset.keys), b.dataset.label, !b.dataset.undo); return true;
 }
 
+// ---------- 설정 (각 탭의 기능 고르기 + 통계 제외 기준) ----------
+const PDEF = {s_hero: true, s_delta: true, s_chkbar: true, s_xsbar: true, s_status: true, s_catbudget: true, s_days: true, s_top: "5",
+  l_sort: "date", l_photo: true, l_appr: true, l_card: true, l_c3: true, l_path: true, l_limit: "120",
+  c_unv: true, c_mis: true, c_wait: false, c_ignbox: true,
+  t_vals: true, t_detail: true, t_table: true, t_top: true,
+  p_auto: false, p_size: "2600", g_swipe: true};
+let PR = null;                                              // per-phone choices (saved in this browser)
+const pref = k => { if (!PR) PR = {...PDEF, ...(fetchStore("g-prefs") || {})}; return PR[k] === undefined ? PDEF[k] : PR[k]; };
+const setPref = (k, v) => { pref(k); PR[k] = v; store("g-prefs", PR); };
+let SPREFS = {}, XS_DEFAULT = [];                           // shared choices (server) and the starting rules
+const xsRules = () => (SPREFS.stat && Array.isArray(SPREFS.stat.rules)) ? SPREFS.stat.rules : (fetchStore("g-xsrules") || XS_DEFAULT);
+const xsMatch = (r, rules) => { for (const ru of rules) { if (ru.on === false || !(ru.min > 0)) continue;
+  if (r.amount >= ru.min && r.items.some(i => i.category === ru.cat) && (!(ru.kw && ru.kw.length) || ru.kw.some(k => r.store.includes(k)))) return ru.name || `${ru.cat} ${Math.round(ru.min / 10000)}만원 이상`; } return ""; };
+const xsOf = r => (r._x !== undefined ? r._x : (r._x = xsMatch(r, xsRules())));
+const clearXs = () => ROWS.forEach(r => { delete r._x; });
+
 // ---------- 대분류 > 중분류 > 소분류 ----------
 let TREE = {}, COLORS1 = {}, MID2L1 = {};
 const l1 = it => MID2L1[it.category] || "기타";
 const lvl = (it, d) => d === 0 ? l1(it) : d === 1 ? it.category : (it.c3 || "기타");
 const matches = (it, path) => path.every((p, d) => lvl(it, d) === p);
-const statRows = rows => rows.filter(r => !r.xs);            // rows left out of the statistics (예: 병원비 50만원 이상) are skipped
+const statRows = rows => rows.filter(r => !xsOf(r));            // rows left out of the statistics (예: 병원비 50만원 이상) are skipped
 function sumsAt(rows, path) {                                  // amount per label of the next level, only items under `path`
   const d = path.length, o = {};
   rows.forEach(r => r.items.forEach(it => { if (matches(it, path)) { const k = lvl(it, d); o[k] = (o[k] || 0) + it.amount; } }));
@@ -455,7 +502,7 @@ function donut(by, total, d, path) {
 }
 function renderSummary() {
   const m = state.month, allRows = monthRows(m), rows = statRows(allRows), total = sum(rows.map(r => r.amount));
-  let html = "";
+  let html = gearRow("sum");
   // hero
   const real = m !== "전체", mi = real ? monthInfo(m) : null;
   let deltaHtml = "";
@@ -464,7 +511,7 @@ function renderSummary() {
     if (pm) {
       const lim = mi.isNow ? mi.elapsed : 99, prev = sum(statRows(monthRows(pm)).filter(r => +r.date.slice(8, 10) <= lim).map(r => r.amount));
       const diff = total - prev;
-      if (prev > 0) deltaHtml = `<div class="delta ${diff > 0 ? "up" : "down"} num">지난달 ${mi.isNow ? "같은 시점" : "전체"}보다 ${diff > 0 ? "▲" : "▼"} ${Math.abs(diff / prev * 100).toFixed(0)}% (${diff > 0 ? "+" : "-"}${won(Math.abs(diff))})</div>`;
+      if (prev > 0 && pref("s_delta")) deltaHtml = `<div class="delta ${diff > 0 ? "up" : "down"} num">지난달 ${mi.isNow ? "같은 시점" : "전체"}보다 ${diff > 0 ? "▲" : "▼"} ${Math.abs(diff / prev * 100).toFixed(0)}% (${diff > 0 ? "+" : "-"}${won(Math.abs(diff))})</div>`;
     }
   }
   const byMid = {}; rows.forEach(r => r.items.forEach(it => byMid[it.category] = (byMid[it.category] || 0) + it.amount));
@@ -473,7 +520,7 @@ function renderSummary() {
   if (real) {
     bud = sum(names.map(c => getBudget(m, c)));
     const proj = mi.elapsed >= mi.dim ? total : mi.elapsed > 0 ? Math.round(total / mi.elapsed * mi.dim) : 0;
-    if (bud > 0) {
+    if (bud > 0 && pref("s_hero")) {
       const max = Math.max(total, proj, bud) * 1.0, st = total > bud ? ["st-over", `예산 초과 +${won(total - bud)}`] : proj > bud ? ["st-risk", `이 속도면 +${won(proj - bud)} 초과 예상`] : ["st-ok", `예상해도 ${won(bud - proj)} 여유`];
       meter = `<div class="meter"><div class="meter-track"><div class="meter-spent ${total > bud ? "over" : ""}" style="width:${Math.min(total / max * 100, 100)}%"></div>
         <div class="meter-proj" style="left:${total / max * 100}%;width:${Math.max(proj - total, 0) / max * 100}%"></div>
@@ -483,18 +530,18 @@ function renderSummary() {
   }
   html += `<div class="card hero"><div class="lbl">${m === "전체" ? "전체 기간 지출" : m + " 지출"}</div>
     <div class="big num">${Math.round(total).toLocaleString("ko-KR")}<span>원</span></div>${deltaHtml}${meter}</div>`;
-  const xr = allRows.filter(r => r.xs);
-  if (xr.length) html += `<button class="unvbar xsbar" data-xs="1" type="button"><span><b>통계에서 뺀 항목 ${xr.length}건</b> · ${won(sum(xr.map(r => r.amount)))} ${Q("xs")}<br><span class="sub">${esc([...new Set(xr.map(r => r.xs))].join(", "))} · 눌러서 확인하세요.</span></span><span>›</span></button>`;
+  const xr = allRows.filter(r => xsOf(r));
+  if (xr.length && pref("s_xsbar")) html += `<button class="unvbar xsbar" data-xs="1" type="button"><span><b>통계에서 뺀 항목 ${xr.length}건</b> · ${won(sum(xr.map(r => r.amount)))} ${Q("xs")}<br><span class="sub">${esc([...new Set(xr.map(r => xsOf(r)))].join(", "))} · 눌러서 확인하세요.</span></span><span>›</span></button>`;
   const chkRows = allRows.filter(needs), nU = chkRows.filter(isUnv).length, nM = chkRows.filter(isMis).length;
-  if (chkRows.length) html += `<button class="unvbar" data-chk="1" type="button"><span><b>확인이 필요한 항목 ${chkRows.length}건</b> · ${won(sum(chkRows.map(r => r.amount)))}<br><span class="sub">검증 안 됨 ${nU}건 · 카드 내역과 불일치 ${nM}건 · 눌러서 확인하세요.</span></span><span>›</span></button>`;
+  if (chkRows.length && pref("s_chkbar")) html += `<button class="unvbar" data-chk="1" type="button"><span><b>확인이 필요한 항목 ${chkRows.length}건</b> · ${won(sum(chkRows.map(r => r.amount)))}<br><span class="sub">검증 안 됨 ${nU}건 · 카드 내역과 불일치 ${nM}건 · 눌러서 확인하세요.</span></span><span>›</span></button>`;
   const rc = allRows.filter(r => r.st), cnt = k => rc.filter(r => r.st === k && (k !== "unverified" || isUnv(r))).length;
-  if (rc.length) html += `<div class="card"><h2><span>영수증·주문내역 현황 ${Q("status")}</span><em class="num">${rc.length}건</em></h2><div class="statcard"><div><b class="num" style="color:var(--accent)">${cnt("confirmed")}</b><span>확정완료</span></div><div><b class="num">${cnt("verified")}</b><span>검증완료</span></div><div><b class="num" style="color:var(--warn)">${cnt("unverified")}</b><span>검증 안 됨</span></div></div></div>`;
+  if (rc.length && pref("s_status")) html += `<div class="card"><h2><span>영수증·주문내역 현황 ${Q("status")}</span><em class="num">${rc.length}건</em></h2><div class="statcard"><div><b class="num" style="color:var(--accent)">${cnt("confirmed")}</b><span>확정완료</span></div><div><b class="num">${cnt("verified")}</b><span>검증완료</span></div><div><b class="num" style="color:var(--warn)">${cnt("unverified")}</b><span>검증 안 됨</span></div></div></div>`;
   // 대분류 > 중분류 > 소분류: touch a row to go one level deeper
   const path = state.dpath.slice(0, 2), d = path.length, by = sumsAt(rows, path);
   const list = Object.entries(by).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   const pos = sum(list.map(x => x[1])) || 1;
   html += `<div class="card"><h2><span>카테고리 ${Q("cats")}</span><em>눌러서 ${d < 2 ? "안으로 들어가요" : "내역을 봐요"}</em></h2>${stepsHtml(path, "data-up")}<div class="donut-wrap">${donut(by, pos, d, path)}</div>` +
-    list.map(([c, v]) => { const b = real ? budgetAt(m, d, c) : 0, over = b > 0 && v > b, col = colorAt(c, d, path);
+    list.map(([c, v]) => { const b = real && pref("s_catbudget") ? budgetAt(m, d, c) : 0, over = b > 0 && v > b, col = colorAt(c, d, path);
       return `<button class="cat" data-dn="${esc(c)}"><div class="cat-top"><span class="dot" style="background:${col}"></span><span class="cat-name">${esc(c)}</span>
         <span class="cat-pct num">${Math.round(v / pos * 100)}%</span><span class="cat-amt num">${won(v)}</span><span class="chev">›</span></div>
         ${d < 2 ? `<div class="cat-kids">${esc(Object.entries(sumsAt(rows, [...path, c])).filter(([, x]) => x > 0).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k]) => k).join(" · "))}${Object.keys(sumsAt(rows, [...path, c])).length > 4 ? " …" : ""}</div>` : ""}
@@ -503,7 +550,7 @@ function renderSummary() {
     `<button class="btn" data-seehist="1" type="button" style="width:100%;margin-top:10px">${path.length ? esc(path.join(" › ")) + " " : ""}내역 보기</button>` +
     (real && bud > 0 ? `<div class="sub" style="margin-top:8px">예산은 Claude가 소비 기록을 보고 업데이트합니다</div>` : "") + `</div>`;
   // daily chart
-  if (real) {
+  if (real && pref("s_days")) {
     const per = Array(mi.dim).fill(0); rows.forEach(r => { const d = +r.date.slice(8, 10); if (r.amount > 0) per[d - 1] += r.amount; });
     const mx = Math.max(...per, 1), today = mi.isNow ? mi.elapsed : 0;
     html += `<div class="card"><h2>일별 지출<em class="num">하루 최대 ${won(mx)}</em></h2><div class="days">${per.map((v, i) =>
@@ -513,14 +560,15 @@ function renderSummary() {
   // top stores
   const g = {};
   rows.filter(r => r.amount > 0).forEach(r => { const k = r.store.replace(/\s+/g, ""); g[k] = g[k] || {name: r.store, n: 0, s: 0, cat: r.items[0] ? r.items[0].category : ""}; g[k].n++; g[k].s += r.amount; });
-  const top = Object.values(g).sort((a, b) => b.s - a.s).slice(0, 5);
-  if (top.length) html += `<div class="card"><h2>많이 쓴 곳 TOP ${top.length}</h2>` + top.map((t, i) =>
+  const top = Object.values(g).sort((a, b) => b.s - a.s).slice(0, +pref("s_top"));
+  if (top.length && +pref("s_top") > 0) html += `<div class="card"><h2>많이 쓴 곳 TOP ${top.length}</h2>` + top.map((t, i) =>
     `<button class="store" data-q="${esc(t.name)}"><span class="rk">${i + 1}</span><span class="nm">${esc(t.name)}<small>${t.n}회${t.cat ? " · " + esc(t.cat) : ""}</small></span><span class="am num">${won(t.s)}</span></button>`).join("") + `</div>`;
   $("v-sum").innerHTML = html;
 }
 
 // ---------- 내역 ----------
 function buildListControls() {
+  document.querySelectorAll(".seg button").forEach(x => x.classList.toggle("on", x.dataset.sort === state.sort));
   const rows = monthRows(state.month);
   const chipRow = d => {
     if (d > state.f.length) return "";                         // the next row appears once the row above has a choice
@@ -529,7 +577,7 @@ function buildListControls() {
       `<button class="chip ${state.f[d] === c ? "on" : ""}" data-f="${d}:${esc(c)}"><span class="dot" style="background:${colorAt(c, d, state.f)}"></span>${esc(c)}</button>`).join("");
   };
   $("catChips").innerHTML = chipRow(0); $("catChips2").innerHTML = chipRow(1); $("catChips3").innerHTML = chipRow(2);
-  const srcs = [...new Set(rows.map(r => r.src))].sort(), nu = rows.filter(isUnv).length, nx = rows.filter(r => r.xs).length;
+  const srcs = [...new Set(rows.map(r => r.src))].sort(), nu = rows.filter(isUnv).length, nx = rows.filter(r => xsOf(r)).length;
   $("srcChips").innerHTML = (nu ? `<button class="chip sm unvchip ${state.unv ? "on" : ""}" data-u="1">검증 안 됨만 ${nu}</button>` : "") +
     (nx ? `<button class="chip sm ${state.xs ? "on" : ""}" data-x="1">통계 제외만 ${nx}</button>` : "") +
     (srcs.length > 1 ? srcs.map(s => `<button class="chip sm ${state.srcs.has(s) ? "on" : ""}" data-s="${esc(s)}">${esc(s)}</button>`).join("") : "");
@@ -540,9 +588,9 @@ const gapTag = r => r.gap === "mismatch" ? '<span class="stg gp">카드 내역�
 function rowHtml(r, a, showDate, opt) {
     const has = r.items.length > 0 && !r.flat, rs = catSums([r]), keys = Object.keys(rs).sort((a, b) => rs[b] - rs[a]);
   return `<div class="row ${has ? "click" : ""} ${r.ok === false ? "unvrow" : ""}" style="--rc:${color(keys[0])}"><div class="top2"><div class="nm-wrap" style="min-width:0">
-    <div class="nm">${esc(r.store)}${stTag(r)}${r.xs ? '<span class="stg xs">통계 제외</span>' : ""}${opt && opt.gap ? gapTag(r) : ""}</div>
+    <div class="nm">${esc(r.store)}${stTag(r)}${xsOf(r) ? '<span class="stg xs">통계 제외</span>' : ""}${opt && opt.gap ? gapTag(r) : ""}</div>
     <div class="meta">${keys.map(k => { const top = r.items.filter(i => i.category === k).sort((x, y) => y.amount - x.amount)[0], big = MID2L1[k];
-      return `<span class="tag"><span class="dot" style="background:${color(k)};width:7px;height:7px"></span>${big ? esc(big) + " › " : ""}${esc(k)}${keys.length > 1 ? " " + rs[k].toLocaleString("ko-KR") : ""}</span>${top && top.c3 && top.c3 !== "기타" ? `<span class="tag">${esc(top.c3)}</span>` : ""}`; }).join("")}${r.photo ? `<span class="tag">사진 ${esc(r.photo)}</span>` : ""}${r.approval ? `<span class="tag">승인 ${esc(r.approval)}</span>` : ""}<span>${esc(r.card || (r.src === "영수증" ? "카드사 미확인" : r.src))}${showDate ? " · " + r.date.slice(2).replace(/-/g, ".") : ""}</span></div>${r.ok === false && r.why ? `<div class="why">${esc(r.why)}</div>` : ""}${opt && opt.gap && r.near ? `<div class="near">비슷한 카드 내역: <b>${esc(r.near)}</b></div>` : ""}</div>
+      return `<span class="tag"><span class="dot" style="background:${color(k)};width:7px;height:7px"></span>${big && pref("l_path") ? esc(big) + " › " : ""}${esc(k)}${keys.length > 1 ? " " + rs[k].toLocaleString("ko-KR") : ""}</span>${top && top.c3 && top.c3 !== "기타" && pref("l_c3") ? `<span class="tag">${esc(top.c3)}</span>` : ""}`; }).join("")}${r.photo && pref("l_photo") ? `<span class="tag">사진 ${esc(r.photo)}</span>` : ""}${r.approval && pref("l_appr") ? `<span class="tag">승인 ${esc(r.approval)}</span>` : ""}<span>${pref("l_card") ? esc(r.card || (r.src === "영수증" ? "카드사 미확인" : r.src)) : ""}${showDate ? " · " + r.date.slice(2).replace(/-/g, ".") : ""}</span></div>${r.ok === false && r.why ? `<div class="why">${esc(r.why)}</div>` : ""}${opt && opt.gap && r.near ? `<div class="near">비슷한 카드 내역: <b>${esc(r.near)}</b></div>` : ""}</div>
     <div class="am num ${a < 0 ? "neg" : ""}">${won(a)}</div></div>
     ${has ? `<div class="items">${r.items.map(i => `<div class="item"><span><span class="dot" style="background:${color(i.category)};width:7px;height:7px;margin-right:6px"></span>${esc(i.name)}</span><span class="num">${won(i.amount)}</span></div>`).join("")}</div>` : ""}${opt && opt.ign && CAN_UP ? `<div class="igrow"><button class="ign" type="button" data-ign="1" data-keys="${esc(JSON.stringify(opt.ign === "wait" ? [igKey("gap", r)] : ignKeys(r)))}" data-label="${esc(r.date.slice(5) + " " + r.store + " " + won(r.amount))}" aria-label="이 항목 무시">${EYE}무시</button></div>` : ""}</div>`;
 }
@@ -550,9 +598,9 @@ function paintList() {
   const {f, srcs, q} = state, ql = q.trim().toLowerCase();
   const rowAmt = r => f.length ? sum(r.items.filter(i => matches(i, f)).map(i => i.amount)) : r.amount;
   let rows = monthRows(state.month).filter(r =>
-    (!f.length || r.items.some(i => matches(i, f))) && (!srcs.size || srcs.has(r.src)) && (!state.unv || isUnv(r)) && (!state.xs || r.xs) &&
+    (!f.length || r.items.some(i => matches(i, f))) && (!srcs.size || srcs.has(r.src)) && (!state.unv || isUnv(r)) && (!state.xs || xsOf(r)) &&
     (!ql || r.store.toLowerCase().includes(ql) || r.items.some(i => i.name.toLowerCase().includes(ql))));
-  const nxs = rows.filter(r => r.xs).length, total = sum(rows.filter(r => !r.xs).map(rowAmt));
+  const nxs = rows.filter(r => xsOf(r)).length, total = sum(rows.filter(r => !xsOf(r)).map(rowAmt));
   $("listInfo").innerHTML = `<span class="num">${rows.length}건 · <b style="color:var(--text)">${won(total)}</b>${nxs ? ` <span class="sub">(통계 제외 ${nxs}건은 합계에 안 넣었어요)</span>` : ""}</span>`;
   if (state.sort === "amount") rows = rows.slice().sort((a, b) => rowAmt(b) - rowAmt(a)); else rows = rows.slice().sort((a, b) => b.date.localeCompare(a.date));
   const shown = rows.slice(0, state.limit);
@@ -576,13 +624,13 @@ function renderChk() {
   const nU = A.filter(isUnv).length, nM = A.filter(isMis).length, nW = A.filter(isWait).length, nN = A.filter(needs).length, totalNeed = ROWS.filter(needs).length;
   const pick = {all: needs, unv: isUnv, mis: isMis, wait: isWait}[state.ck] || needs;
   const rows = A.filter(pick).sort((a, b) => b.date.localeCompare(a.date));
-  let html = `<div class="card"><h2><span>확인이 필요한 항목 ${Q("chk")}</span><em class="num">${m === "전체" ? "전체 기간" : m}</em></h2>
+  let html = gearRow("chk") + `<div class="card"><h2><span>확인이 필요한 항목 ${Q("chk")}</span><em class="num">${m === "전체" ? "전체 기간" : m}</em></h2>
     <div class="num"><span style="font-size:28px;font-weight:700;letter-spacing:-.02em">${rows.length}건</span> <span class="sub">· ${won(sum(rows.map(r => r.amount)))}</span></div>
     <div class="chips" style="margin-top:10px"><button class="chip ${state.ck === "all" ? "on" : ""}" data-ck="all" type="button">전체 ${nN}</button><button class="chip ${state.ck === "unv" ? "on" : ""}" data-ck="unv" type="button">검증 안 됨 ${nU}</button><button class="chip ${state.ck === "mis" ? "on" : ""}" data-ck="mis" type="button">카드 내역과 불일치 ${nM}</button><button class="chip ${state.ck === "wait" ? "on" : ""}" data-ck="wait" type="button">명세서 대기 ${nW}</button></div></div>`;
   if (!rows.length) html += `<div class="empty">${state.ck === "wait" ? "명세서를 기다리는 항목이 없어요." : (m === "전체" ? "확인이 필요한 항목이 없어요.<br>모든 항목이 확인됐어요." : m + "에는 확인이 필요한 항목이 없어요.")}${m !== "전체" && totalNeed ? `<br><button class="btn" data-allm="1" type="button" style="margin-top:12px">다른 달 포함 ${totalNeed}건 보기</button>` : ""}</div>`;
   else if (m !== "전체" && state.ck !== "wait" && totalNeed > nN) html += `<button class="more" data-allm="1" type="button">다른 달 ${totalNeed - nN}건 더 있어요 · 전체 기간 보기</button>`;
   rows.forEach(r => { html += rowHtml(r, r.amount, true, {gap: true, ign: state.ck === "wait" ? "wait" : "chk"}); });
-  html += ignoredBox("chk", A.filter(dismissed));
+  html += pref("c_ignbox") ? ignoredBox("chk", A.filter(dismissed)) : "";
   $("v-unv").innerHTML = html;
 }
 $("v-unv").addEventListener("toggle", e => { if (e.target.dataset && e.target.dataset.box) state.ignOpen[e.target.dataset.box] = e.target.open; }, true);
@@ -614,24 +662,24 @@ function renderTrend() {
     <div class="chips" style="margin-bottom:6px">${modes.map(([k, l]) => `<button class="chip ${state.tr.mode === k ? "on" : ""}" data-tr="${k}" type="button">${l}</button>`).join("")}</div>
     ${state.tr.mode === "custom" ? `<div class="trpick"><select id="trFrom" aria-label="시작 달">${opt(rangeMs[0])}</select><span>~</span><select id="trTo" aria-label="끝 달">${opt(rangeMs[rangeMs.length - 1])}</select></div>` : ""}
     <div class="sub num" style="margin-top:8px">기간 합계 <b style="color:var(--text)">${won(sum(vals))}</b> · 월평균 <b style="color:var(--text)">${won(avg)}</b>${done.length < per.length ? " (진행 중인 이번 달 제외)" : ""}</div></div>`;
-  let html = rangeCard + `<div class="card"><h2><span>카테고리 추이 ${Q("cats")}</span><em>눌러서 ${d < 2 ? "안으로 들어가요" : "하나만 봐요"}</em></h2>${stepsHtml(path, "data-tu")}
+  let html = gearRow("trend") + rangeCard + `<div class="card"><h2><span>카테고리 추이 ${Q("cats")}</span><em>눌러서 ${d < 2 ? "안으로 들어가요" : "하나만 봐요"}</em></h2>${stepsHtml(path, "data-tu")}
     <div class="chips" style="margin-bottom:4px">${catList.map(c =>
       `<button class="chip ${d === 3 && path[2] === c ? "on" : ""}" data-tp="${esc(c)}"><span class="dot" style="background:${colAt(c)}"></span>${esc(c)}</button>`).join("")}</div>
     <div class="bars" id="bars">${per.map(p => { const v = val(p), h = v / mx * 100;
       const stack = d < 3
         ? Object.entries(p.by).filter(([, x]) => x > 0).sort((a, b) => a[1] - b[1]).map(([c, x]) => `<div style="height:${x / (v || 1) * 100}%;background:${colAt(c)}"></div>`).join("")
         : `<div style="height:100%;background:${colAt(path[2])}"></div>`;
-      return `<button class="bcol ${p.m === state.tmonth ? "sel" : ""}" data-tm="${p.m}"><span class="val num">${v ? man(v) : ""}</span><div class="stack" style="height:${Math.max(h, v ? 2 : 0)}%">${stack}</div><span class="lab num">${p.m.slice(2).replace("-", ".")}${p.m === now ? "*" : ""}</span></button>`; }).join("")}</div>`;
+      return `<button class="bcol ${p.m === state.tmonth ? "sel" : ""}" data-tm="${p.m}"><span class="val num">${pref("t_vals") && v ? man(v) : ""}</span><div class="stack" style="height:${Math.max(h, v ? 2 : 0)}%">${stack}</div><span class="lab num">${p.m.slice(2).replace("-", ".")}${p.m === now ? "*" : ""}</span></button>`; }).join("")}</div>`;
   // selected month detail
   const sp = per.find(p => p.m === state.tmonth), pm = MONTHS[MONTHS.indexOf(state.tmonth) - 1], pp = pm ? {by: sumsAt(statRows(monthRows(pm)), scope)} : null;
   const tot = val(sp), ptot = pp ? val(pp) : 0;
   const dl = pp && ptot > 0 && state.tmonth !== now ? ` · 전월 대비 ${tot >= ptot ? "▲" : "▼"} ${Math.abs((tot - ptot) / ptot * 100).toFixed(0)}%` : "";
-  html += `<div class="mdetail"><div class="hd"><b>${state.tmonth}</b><span class="num">${won(tot)}</span></div><div class="sub">${state.tmonth === now ? "이번 달은 진행 중이에요" : "지난 달 확정"}${dl}</div>` +
+  html += !pref("t_detail") ? "</div>" : `<div class="mdetail"><div class="hd"><b>${state.tmonth}</b><span class="num">${won(tot)}</span></div><div class="sub">${state.tmonth === now ? "이번 달은 진행 중이에요" : "지난 달 확정"}${dl}</div>` +
     (d < 3 ? Object.entries(sp.by).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 5) : []).map(([c, v]) =>
       `<div class="item" style="padding:4px 0"><span><span class="dot" style="background:${colAt(c)};margin-right:7px"></span>${esc(c)}</span><span class="num" style="color:var(--text)">${won(v)}</span></div>`).join("") + `</div></div>`;
   // table
   const last6 = per, cur = per[per.length - 1], pm2 = MONTHS[MONTHS.indexOf(cur.m) - 1], prv = pm2 ? {m: pm2, by: sumsAt(statRows(monthRows(pm2)), scope)} : null;
-  html += `<div class="card"><h2>${LVN[lvlN]} × 월<em>${last6.length}개월 · 눌러서 들어가요</em></h2><div class="scroll"><table><tr><th>${LVN[lvlN]}</th>${last6.map(p => `<th>${p.m.slice(5)}월</th>`).join("")}<th>월평균</th>${prv ? "<th>전월비</th>" : ""}</tr>` +
+  html += !pref("t_table") ? "" : `<div class="card"><h2>${LVN[lvlN]} × 월<em>${last6.length}개월 · 눌러서 들어가요</em></h2><div class="scroll"><table><tr><th>${LVN[lvlN]}</th>${last6.map(p => `<th>${p.m.slice(5)}월</th>`).join("")}<th>월평균</th>${prv ? "<th>전월비</th>" : ""}</tr>` +
     catList.map(c => { const d = prv ? (cur.by[c] || 0) - (prv.by[c] || 0) : 0;
       return `<tr data-tp="${esc(c)}" class="drow"><td><span class="dot" style="background:${colAt(c)};margin-right:7px"></span>${esc(c)}</td>${last6.map(p => `<td class="num">${p.by[c] ? man(p.by[c]) : "-"}</td>`).join("")}<td class="num"><b>${(() => { const dn = last6.filter(p => p.m !== now), a = dn.length ? sum(dn.map(p => p.by[c] || 0)) / dn.length : 0; return a ? man(a) : "-"; })()}</b></td>${prv ? `<td class="num ${d > 0 ? "up" : d < 0 ? "down" : ""}">${d ? (d > 0 ? "▲" : "▼") + man(Math.abs(d)) : "-"}</td>` : ""}</tr>`; }).join("") + `</table></div>` +
     (cur.m === now ? '<div class="sub" style="margin-top:8px">이번 달은 진행 중이라 전월비가 작게 보일 수 있어요 (단위: 원, 만원)</div>' : '<div class="sub" style="margin-top:8px">단위: 원, 만원</div>') + `</div>`;
@@ -639,7 +687,7 @@ function renderTrend() {
   const g = {};
   statRows(rangeMs.flatMap(monthRows)).flatMap(r => r.items).filter(i => i.amount > 0).forEach(i => { const k = i.name.replace(/\s/g, ""); g[k] = g[k] || {name: i.name, n: 0, s: 0, cat: i.category}; g[k].n++; g[k].s += i.amount; });
   const top = Object.values(g).sort((a, b) => b.s - a.s).slice(0, 8);
-  html += `<div class="card"><h2>선택한 기간에 많이 쓴 곳</h2>` + top.map((t, i) =>
+  html += !pref("t_top") ? "" : `<div class="card"><h2>선택한 기간에 많이 쓴 곳</h2>` + top.map((t, i) =>
     `<button class="store" data-q="${esc(t.name)}" data-all="1"><span class="rk">${i + 1}</span><span class="nm">${esc(t.name)}<small>${t.n}회 · ${esc(t.cat)}</small></span><span class="am num">${won(t.s)}</span></button>`).join("") +
     `<div class="sub" style="margin-top:8px">${esc(COVER)}</div></div>`;
   $("v-trend").innerHTML = html;
@@ -660,7 +708,7 @@ const tfmt = s => { if (!s) return ""; const d = new Date(s); return isNaN(d) ? 
 
 function buildPhoto() {
   if (P.built) return; P.built = true;
-  $("v-photo").innerHTML = `
+  $("v-photo").innerHTML = gearRow("photo") + `
     <div class="card"><h2><span>올리기 ${Q("up")}</span></h2>
       <input id="pFiles" type="file" accept="image/*" multiple hidden>
       <input id="pFilesHy" type="file" accept="image/*" multiple hidden>
@@ -703,7 +751,8 @@ function toJpeg(file) {   // shrink (long side 2600px) and re-encode as JPEG so 
     const img = new Image(), url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      for (const [side, q] of [[2600, .85], [2600, .72], [2000, .72], [1600, .7]]) {
+      const S0 = +pref("p_size");
+      for (const [side, q] of [[S0, .85], [S0, .72], [Math.min(S0, 2000), .72], [1600, .7]]) {
         const sc = Math.min(1, side / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
         c.width = Math.round(img.naturalWidth * sc); c.height = Math.round(img.naturalHeight * sc);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
@@ -743,6 +792,7 @@ async function uploadAll() {
   P.files = P.files.filter(f => f.state !== "완료"); P.files.forEach(f => f.state = "");
   P.busy = false; paintThumbs();
   setMsg((ok ? `${ok}개를 올렸어요. 아래 '맥에서 읽기'를 눌러 주세요.` : "") + (fails.length ? `\n올리지 못한 파일 ${fails.length}개:\n` + fails.join("\n") : ""), !ok && fails.length > 0);
+  if (ok && pref("p_auto")) await requestRead();
   refreshStatus();
 }
 async function requestRead() {
@@ -808,7 +858,7 @@ function show(tab, keep) {
   if (tab === "photo") openPhoto(); else stopPoll();
   if (!keep) window.scrollTo(0, 0);
 }
-function setMonth(m) { state.unv = false; state.month = m; store("g-month", m); state.limit = 120; renderHeader(); show(state.tab); }
+function setMonth(m) { state.unv = false; state.month = m; store("g-month", m); state.limit = +pref("l_limit"); renderHeader(); show(state.tab); }
 $("todayM").onclick = () => setMonth(curMonth());
 $("prevM").onclick = () => setMonth(MONTHS[MONTHS.indexOf(state.month) - 1]);
 $("nextM").onclick = () => setMonth(MONTHS[MONTHS.indexOf(state.month) + 1]);
@@ -843,18 +893,97 @@ $("v-trend").addEventListener("change", e => {   // custom period: start / end m
   if (e.target.id !== "trFrom" && e.target.id !== "trTo") return;
   let a = $("trFrom").value, b = $("trTo").value; if (a > b) [a, b] = [b, a];
   state.tr = {mode: "custom", from: a, to: b}; store("g-trange", state.tr); state.tscroll = null; renderTrend(); });
-$("q").oninput = e => { state.q = e.target.value; state.limit = 120; paintList(); };
+$("q").oninput = e => { state.q = e.target.value; state.limit = +pref("l_limit"); paintList(); };
 $("qClear").onclick = () => { $("q").value = ""; state.q = ""; paintList(); };
 const filterClick = e => { const b = e.target.closest(".chip"); if (!b) return; const [dd, name] = [+b.dataset.f.split(":")[0], b.dataset.f.slice(b.dataset.f.indexOf(":") + 1)];
   state.f = !name || state.f[dd] === name ? state.f.slice(0, dd) : [...state.f.slice(0, dd), name];
-  state.limit = 120; buildListControls(); paintList(); };
+  state.limit = +pref("l_limit"); buildListControls(); paintList(); };
 ["catChips", "catChips2", "catChips3"].forEach(id => $(id).onclick = filterClick);
 $("srcChips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; const s = b.dataset.s;
-  if (b.dataset.x) state.xs = !state.xs; else if (b.dataset.u) state.unv = !state.unv; else state.srcs.has(s) ? state.srcs.delete(s) : state.srcs.add(s); state.limit = 120; buildListControls(); paintList(); };
-document.querySelector(".seg").onclick = e => { const b = e.target.closest("button"); if (!b) return; state.sort = b.dataset.sort; state.limit = 120;
+  if (b.dataset.x) state.xs = !state.xs; else if (b.dataset.u) state.unv = !state.unv; else state.srcs.has(s) ? state.srcs.delete(s) : state.srcs.add(s); state.limit = +pref("l_limit"); buildListControls(); paintList(); };
+document.querySelector(".seg").onclick = e => { const b = e.target.closest("button"); if (!b) return; state.sort = b.dataset.sort; state.limit = +pref("l_limit");
   document.querySelectorAll(".seg button").forEach(x => x.classList.toggle("on", x === b)); paintList(); };
 $("listBody").onclick = e => { if (e.target.id === "moreBtn") { state.limit += 200; paintList(); return; }
   const r = e.target.closest(".row.click"); if (r) r.classList.toggle("open"); };
+
+const GEAR_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+const gearRow = tab => `<div class="gearrow"><button class="gear" type="button" data-gear="${tab}">${GEAR_ICON}설정</button></div>`;
+const SCHEMA = {
+  sum: {t: "요약 설정", g: [
+    ["위쪽", [["s_hero", "bool", "예산 막대", "총액 아래 예산 사용 막대"], ["s_delta", "bool", "지난달 대비 문구", ""], ["s_chkbar", "bool", "'확인이 필요한 항목' 띠", ""], ["s_xsbar", "bool", "'통계에서 뺀 항목' 띠", ""], ["s_status", "bool", "영수증·주문내역 현황 카드", "확정완료 · 검증완료 · 검증 안 됨 개수"]]],
+    ["카테고리", [["s_catbudget", "bool", "카테고리별 예산 표시", "각 항목 아래 예산 막대와 사용률"]]],
+    ["아래쪽", [["s_days", "bool", "일별 지출 막대", ""], ["s_top", "select", "많이 쓴 곳", "", [["0", "숨김"], ["3", "3곳"], ["5", "5곳"], ["10", "10곳"]]]]]]},
+  list: {t: "내역 설정", g: [
+    ["정렬과 개수", [["l_sort", "select", "처음 정렬", "", [["date", "날짜순"], ["amount", "금액순"]]], ["l_limit", "select", "한 번에 보이는 개수", "더 보기로 계속 열 수 있어요", [["60", "60건"], ["120", "120건"], ["300", "300건"]]]]],
+    ["줄에 보여줄 정보", [["l_path", "bool", "대분류 › 중분류 경로", "끄면 중분류만 표시"], ["l_c3", "bool", "소분류 태그", ""], ["l_photo", "bool", "사진 번호", ""], ["l_appr", "bool", "카드 승인번호", ""], ["l_card", "bool", "카드사·출처", ""]]]]},
+  chk: {t: "확인 설정", g: [
+    ["'전체'에 넣을 종류", [["c_unv", "bool", "검증 안 됨", ""], ["c_mis", "bool", "카드 내역과 불일치", ""], ["c_wait", "bool", "명세서 대기", "아직 명세서가 없는 항목 (확인할 일은 아니에요)"]]],
+    ["화면", [["c_ignbox", "bool", "'무시한 항목' 상자", "맨 아래 접힌 칸"]]]]},
+  trend: {t: "추이 설정", g: [
+    ["그래프", [["t_vals", "bool", "막대 위 금액", ""], ["t_detail", "bool", "선택한 달 상세", "막대 아래 합계와 전월 대비"]]],
+    ["아래쪽", [["t_table", "bool", "분류 × 월 표", ""], ["t_top", "bool", "기간 중 많이 쓴 곳", ""]]]]},
+  photo: {t: "사진 설정", g: [
+    ["올리기", [["p_size", "select", "사진 크기", "작을수록 빨리 올라가지만 글자가 덜 또렷해요", [["2600", "크게 (2600px)"], ["2000", "보통 (2000px)"], ["1600", "작게 (1600px)"]]], ["p_auto", "bool", "올린 뒤 바로 '맥에서 읽기' 요청", "끄면 직접 누를 때까지 기다려요"]]]]}
+};
+const COMMON = ["모든 탭", [["g_swipe", "bool", "좌/우로 밀어서 달 이동", "사진 탭은 제외"]]];
+let setTab = null, XS_EDIT = [];
+const ctl = d => { const [k, type, label, desc, opts] = d, v = pref(k);
+  return `<label class="srow"><span>${esc(label)}${desc ? `<small>${esc(desc)}</small>` : ""}</span>` + (type === "bool"
+    ? `<span class="sw"><input type="checkbox" data-pref="${k}" ${v ? "checked" : ""}><i></i></span>`
+    : `<select data-pref="${k}">${opts.map(([val, l]) => `<option value="${val}" ${String(v) === val ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`) + `</label>`; };
+function openSettings(tab) {
+  setTab = tab; const sc = SCHEMA[tab]; $("setT").textContent = sc.t;
+  let h = sc.g.map(([title, items]) => `<h4>${esc(title)}</h4>` + items.map(ctl).join("")).join("");
+  if (tab === "sum") { XS_EDIT = JSON.parse(JSON.stringify(xsRules())); h += `<h4>통계에서 뺄 항목 (모두에게 적용)</h4><div id="xsEd"></div>`; }
+  h += `<h4>${COMMON[0]}</h4>` + COMMON[1].map(ctl).join("");
+  $("setBody").innerHTML = h; $("setBack").hidden = false; if (tab === "sum") renderXsEditor();
+}
+const closeSettings = () => { $("setBack").hidden = true; setTab = null; };
+const MIDS = () => Object.values(TREE).flat();
+function xsPreview(rules) { const hit = ROWS.filter(r => xsMatch(r, rules)); return `이 기준으로 빠지는 항목 ${hit.length}건 · ${won(sum(hit.map(r => r.amount)))}`; }
+function renderXsEditor() {
+  const box = $("xsEd"); if (!box) return; const can = CAN_UP;
+  box.innerHTML = (can ? "" : `<div class="sub">올리기 권한이 있는 사람만 바꿀 수 있어요. 지금 기준을 보여줘요.</div>`) +
+    XS_EDIT.map((ru, i) => `<div class="xrule" data-i="${i}">
+      <div class="r1"><label class="srow" style="border:0;padding:0;flex:1"><span>${esc(ru.name || `${ru.cat} ${Math.round(ru.min / 10000)}만원 이상`)}</span><span class="sw"><input type="checkbox" data-x="on" ${ru.on !== false ? "checked" : ""} ${can ? "" : "disabled"}><i></i></span></label>${can ? `<button class="del" type="button" data-x="del">삭제</button>` : ""}</div>
+      <div class="r2"><label><span>분류 (중분류)</span><select data-x="cat" ${can ? "" : "disabled"}>${MIDS().map(m => `<option ${m === ru.cat ? "selected" : ""}>${esc(m)}</option>`).join("")}</select></label>
+        <label><span>최소 금액 (만원)</span><input type="number" min="0" step="1" inputmode="decimal" data-x="min" value="${Math.round((ru.min || 0) / 100) / 100}" ${can ? "" : "disabled"}></label></div>
+      <label><span style="display:block;font-size:11px;color:var(--sub);margin-bottom:3px">가게 이름에 들어 있는 말 (쉼표로 구분, 비우면 분류 전체)</span><input type="text" data-x="kw" value="${esc((ru.kw || []).join(", "))}" ${can ? "" : "disabled"}></label></div>`).join("") +
+    `<div class="xprev" id="xsPrev">${xsPreview(XS_EDIT)}</div>` +
+    (can ? `<div class="btns"><button class="btn" type="button" data-x="add">+ 기준 추가</button><button class="btn" type="button" data-x="reset">기본값으로</button><button class="btn pri" type="button" data-x="save">저장</button></div>` : "");
+}
+function readXs() {   // pull the fields back into XS_EDIT
+  document.querySelectorAll("#xsEd .xrule").forEach(el => { const ru = XS_EDIT[+el.dataset.i]; if (!ru) return;
+    ru.on = el.querySelector('[data-x="on"]').checked; ru.cat = el.querySelector('[data-x="cat"]').value;
+    ru.min = Math.max(0, Math.round((parseFloat(el.querySelector('[data-x="min"]').value) || 0) * 10000));
+    ru.kw = el.querySelector('[data-x="kw"]').value.split(",").map(x => x.trim()).filter(Boolean); ru.name = `${ru.cat} ${Math.round(ru.min / 10000)}만원 이상`; });
+}
+async function saveXs() {
+  readXs(); const rules = XS_EDIT.filter(r => r.min > 0).map(r => ({...r}));
+  const c = fetchStore("gagyebu-login-v1"); const r = c ? await rpc("g_pref_set", {p_name: c.name, p_pin: c.pin, p_key: "stat", p_value: {rules}}) : {ok: false, error: "bad_login"};
+  if (r.ok) { SPREFS.stat = {rules}; store("g-xsrules", undefined); toast("저장했어요 · 모두에게 적용돼요"); }
+  else if (r.code === "PGRST202") { store("g-xsrules", rules); toast("서버 설정(prefs.sql)이 아직 안 돼 있어 이 폰에만 적용했어요"); }
+  else { toast(r.error === "not_allowed" ? "바꿀 권한이 없어요" : "저장하지 못했어요"); return; }
+  clearXs(); show(state.tab, true); renderXsEditor();
+}
+document.addEventListener("click", e => {
+  const g = e.target.closest("[data-gear]"); if (g) { openSettings(g.dataset.gear); return; }
+  if (e.target.id === "setBack" || e.target.id === "setX") { closeSettings(); return; }
+  const x = e.target.closest("#xsEd [data-x]"); if (!x) return;
+  if (x.dataset.x === "del") { readXs(); XS_EDIT.splice(+x.closest(".xrule").dataset.i, 1); renderXsEditor(); }
+  else if (x.dataset.x === "add") { readXs(); XS_EDIT.push({name: "", cat: MIDS()[0], kw: [], min: 500000, on: true}); renderXsEditor(); }
+  else if (x.dataset.x === "reset") { XS_EDIT = JSON.parse(JSON.stringify(XS_DEFAULT)); renderXsEditor(); }
+  else if (x.dataset.x === "save") saveXs();
+});
+document.addEventListener("input", e => { if (e.target.closest && e.target.closest("#xsEd")) { readXs(); const p = $("xsPrev"); if (p) p.textContent = xsPreview(XS_EDIT); } });
+document.addEventListener("change", e => {
+  const el = e.target; if (el.dataset && el.dataset.pref) {
+    const v = el.type === "checkbox" ? el.checked : el.value; setPref(el.dataset.pref, v);
+    if (el.dataset.pref === "l_sort") state.sort = v; if (el.dataset.pref === "l_limit") state.limit = +v;
+    updateUnvBadge(); show(state.tab, true); return; }
+  if (el.closest && el.closest("#xsEd")) { readXs(); const p = $("xsPrev"); if (p) p.textContent = xsPreview(XS_EDIT); }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("setBack").hidden) closeSettings(); });
 
 // ---------- 좌/우로 밀어서 달 이동 (사진 탭 제외) ----------
 let sw = null;
@@ -865,7 +994,7 @@ document.addEventListener("touchstart", e => {
         skip: !!e.target.closest(".chips,.bars,.scroll,table,input,select,textarea,.days,details[open],.thumbs") || t.clientX < 24 || t.clientX > window.innerWidth - 24};   // scrollable strips and the screen edge (browser back) keep their own swipe
 }, {passive: true});
 document.addEventListener("touchend", e => {
-  if (!sw) return; const g = sw; sw = null; if (g.skip || state.tab === "photo") return;
+  if (!sw) return; const g = sw; sw = null; if (g.skip || state.tab === "photo" || !pref("g_swipe")) return;
   const t = e.changedTouches[0], dx = t.clientX - g.x, dy = t.clientY - g.y;
   if (Math.abs(dx) < 70 || Math.abs(dx) < 1.6 * Math.abs(dy) || Date.now() - g.t > 700) return;
   swipeMonth(dx < 0 ? 1 : -1);                                       // finger to the left = next month, to the right = previous month
@@ -892,6 +1021,8 @@ function view(v) { $("loginView").hidden = v !== "login"; $("loadView").hidden =
 function showLogin(msg) { view("login"); $("loginMsg").textContent = msg || ""; $("loginMsg").className = "msg" + (msg ? " bad" : ""); }
 function applyData(r) {
   COLORS = (r.config && r.config.colors) || {};
+  SPREFS = r.prefs || {}; XS_DEFAULT = (r.config && r.config.xs_default) || [];
+  if (!applyData.once) { applyData.once = true; state.sort = pref("l_sort"); state.limit = +pref("l_limit"); }
   TREE = (r.config && r.config.tree) || {}; COLORS1 = (r.config && r.config.colors1) || {}; MID2L1 = {};
   Object.entries(TREE).forEach(([k, mids]) => mids.forEach(m => MID2L1[m] = k));
   BUDGET = (r.config && r.config.budget) || BUDGET;
