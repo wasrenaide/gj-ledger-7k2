@@ -190,6 +190,10 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb button{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:1}
 .thumb .st{position:absolute;left:0;right:0;bottom:0;padding:2px 4px;font-size:11px;background:rgba(0,0,0,.6);color:#fff;text-align:center}
+.thumb.doc{display:flex;align-items:center;justify-content:center;background:var(--accent-soft)}
+.docin{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;text-align:center;font-size:10px;color:var(--text);overflow-wrap:anywhere}
+.docin b{font-size:14px;color:var(--accent)}
+.kb{position:absolute;left:4px;top:4px;font-size:10px;font-weight:700;padding:0 6px;line-height:16px;border-radius:8px;background:var(--text);color:var(--bg)}
 .pmsg{margin-top:10px;font-size:13px;color:var(--sub);white-space:pre-line}
 .pmsg.bad{color:var(--over)}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
@@ -488,16 +492,22 @@ const PERR = {not_allowed: "사진 올리기 권한이 없어요.", bad_size: "�
   inbox_full: "서버에 대기 중인 사진이 너무 많아요(150장). 먼저 맥에서 읽어 주세요.", busy: "맥이 작업 중이에요. 끝난 뒤에 다시 해주세요.",
   nothing: "읽을 사진이 없어요.", bad_login: "로그인이 풀렸어요. 다시 로그인해 주세요.", locked: "5번 틀려서 10분간 잠겼어요.", network: "인터넷 연결을 확인해주세요."};
 const creds = () => fetchStore(SK);
-const pErr = r => PERR[r.error] || "오류: " + (r.error || r.message || "알 수 없음");
+const pErr = r => r.code === "PGRST202" ? "서버에 명세서 올리기 설정이 아직 안 돼 있어요 (statements.sql 실행 필요)." : PERR[r.error] || "오류: " + (r.error || r.message || "알 수 없음");
 const tfmt = s => { if (!s) return ""; const d = new Date(s); return isNaN(d) ? "" : `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
 
 function buildPhoto() {
   if (P.built) return; P.built = true;
   $("v-photo").innerHTML = `
-    <div class="card"><h2>영수증 사진 올리기</h2>
-      <div class="sub">영수증 사진이나 캡처를 고르면 서버에 임시로 보관돼요. 읽고 나면 서버에서 지워져요. 긴 영수증은 겹치게 여러 장 찍어 주세요.</div>
+    <div class="card"><h2>올리기</h2>
+      <div class="sub">고른 파일은 서버에 임시로 보관돼요. 맥이 읽고 나면 서버에서 지워져요.</div>
       <input id="pFiles" type="file" accept="image/*" multiple hidden>
-      <div class="btns"><button class="btn" id="pPick" type="button">+ 사진 고르기</button><button class="btn pri" id="pUp" type="button" disabled>올리기</button></div>
+      <input id="pFilesHy" type="file" accept="image/*" multiple hidden>
+      <input id="pFilesSx" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple hidden>
+      <div class="btns"><button class="btn" id="pPick" type="button">+ 영수증·주문내역 사진</button></div>
+      <div class="sub" style="margin-top:6px">긴 영수증은 겹치게 여러 장, 쿠팡은 주문내역 화면을 위에서부터 캡처해 주세요.</div>
+      <div class="btns"><button class="btn" id="pPickHy" type="button">+ 현대카드 명세서 (이미지)</button><button class="btn" id="pPickSx" type="button">+ 삼성카드 명세서 (엑셀)</button></div>
+      <div class="sub" style="margin-top:6px">현대카드: 앱의 명세서 이용내역을 맨 위부터 캡처. 삼성카드: 카드사에서 받은 엑셀(.xlsx) 그대로.</div>
+      <div class="btns"><button class="btn pri" id="pUp" type="button" disabled>올리기</button></div>
       <div class="thumbs" id="pThumbs"></div>
       <div class="pmsg" id="pMsg"></div></div>
     <div class="card"><h2>맥에서 읽기<em><span class="pill" id="pRunner"></span></em></h2>
@@ -505,10 +515,17 @@ function buildPhoto() {
       <div class="btns"><button class="btn pri" id="pRead" type="button" disabled>맥에서 읽기</button></div>
       <div id="pJob"></div>
       <div class="sub" style="margin-top:10px">올린 사진은 맥이 읽어요. 검산에 통과한 영수증은 그대로, 통과하지 못한 영수증도 '검증 안 됨' 꼬리표와 사진 번호를 달아 가계부에 등록돼요. 영수증이 아니거나 금액을 못 읽은 사진은 등록되지 않고 여기에 표시돼요. 맥에서 오류가 나면 가계부는 바뀌지 않고 이유가 표시돼요. 맥이 꺼져 있거나 잠자기 중이면 켜질 때까지 기다려요.</div></div>`;
+  const addFiles = (e, kind) => {
+    const ok = f => kind === "samsung" ? /\.xlsx$/i.test(f.name) : (/^image\//.test(f.type) || /\.(jpe?g|png|heic)$/i.test(f.name));
+    [...e.target.files].filter(ok).forEach(f => P.files.push({file: f, kind, url: kind === "samsung" ? "" : URL.createObjectURL(f), state: ""}));
+    P.files = P.files.slice(0, 30); e.target.value = ""; paintThumbs(); };
   $("pPick").onclick = () => $("pFiles").click();
-  $("pFiles").onchange = e => { const add = [...e.target.files].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|heic)$/i.test(f.name));
-    add.forEach(f => P.files.push({file: f, url: URL.createObjectURL(f), state: ""})); P.files = P.files.slice(0, 30); e.target.value = ""; paintThumbs(); };
-  $("pThumbs").onclick = e => { const b = e.target.closest("button"); if (!b || P.busy) return; const i = +b.dataset.i; URL.revokeObjectURL(P.files[i].url); P.files.splice(i, 1); paintThumbs(); };
+  $("pPickHy").onclick = () => $("pFilesHy").click();
+  $("pPickSx").onclick = () => $("pFilesSx").click();
+  $("pFiles").onchange = e => addFiles(e, "receipt");
+  $("pFilesHy").onchange = e => addFiles(e, "hyundai");
+  $("pFilesSx").onchange = e => addFiles(e, "samsung");
+  $("pThumbs").onclick = e => { const b = e.target.closest("button"); if (!b || P.busy) return; const i = +b.dataset.i; if (P.files[i].url) URL.revokeObjectURL(P.files[i].url); P.files.splice(i, 1); paintThumbs(); };
   $("pUp").onclick = uploadAll;
   $("pRead").onclick = requestRead;
   $("pPending").onclick = async e => { const b = e.target.closest("button"); if (!b) return; b.disabled = true;
@@ -517,7 +534,8 @@ function buildPhoto() {
 }
 function setMsg(t, bad) { const m = $("pMsg"); if (m) { m.textContent = t || ""; m.className = "pmsg" + (bad ? " bad" : ""); } }
 function paintThumbs() {
-  $("pThumbs").innerHTML = P.files.map((f, i) => `<div class="thumb"><img src="${f.url}" alt=""><button data-i="${i}" aria-label="빼기" type="button">×</button>${f.state ? `<div class="st">${esc(f.state)}</div>` : ""}</div>`).join("");
+  const KL = {hyundai: "현대카드", samsung: "삼성카드"};
+  $("pThumbs").innerHTML = P.files.map((f, i) => `<div class="thumb ${f.kind === "samsung" ? "doc" : ""}">${f.kind === "samsung" ? `<div class="docin"><b>XLSX</b><span>${esc(f.file.name)}</span></div>` : `<img src="${f.url}" alt="">`}${KL[f.kind] ? `<span class="kb">${KL[f.kind]}</span>` : ""}<button data-i="${i}" aria-label="빼기" type="button">×</button>${f.state ? `<div class="st">${esc(f.state)}</div>` : ""}</div>`).join("");
   $("pUp").disabled = !P.files.length || P.busy; $("pUp").textContent = P.files.length ? `${P.files.length}장 올리기` : "올리기";
 }
 function toJpeg(file) {   // shrink (long side 2600px) and re-encode as JPEG so uploads stay small but text stays readable
@@ -538,6 +556,13 @@ function toJpeg(file) {   // shrink (long side 2600px) and re-encode as JPEG so 
     img.src = url;
   });
 }
+const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+function fileB64(file) {   // Excel is sent as it is (no re-encoding); the server limit is 4 MB of base64
+  return new Promise((resolve, reject) => {
+    if (file.size > 2900000) return reject(new Error("엑셀 파일이 너무 커요 (2.9MB 이하)"));
+    const fr = new FileReader(); fr.onload = () => resolve(String(fr.result).split(",")[1]); fr.onerror = () => reject(new Error("파일을 읽을 수 없어요")); fr.readAsDataURL(file);
+  });
+}
 async function uploadAll() {
   const c = creds(); if (!c || P.busy || !P.files.length) return;
   P.busy = true; paintThumbs(); setMsg("");
@@ -545,16 +570,19 @@ async function uploadAll() {
   for (let i = 0; i < P.files.length; i++) {
     const f = P.files[i]; f.state = "올리는 중"; paintThumbs(); setMsg(`올리는 중 ${i + 1}/${P.files.length}`);
     try {
-      const b64 = await toJpeg(f.file);
-      const r = await rpc("g_upload", {p_name: c.name, p_pin: c.pin, p_filename: f.file.name || "photo.jpg", p_mime: "image/jpeg", p_data: b64,
-        p_taken: new Date(f.file.lastModified || Date.now()).toISOString()});
+      const sx = f.kind === "samsung";
+      const b64 = sx ? await fileB64(f.file) : await toJpeg(f.file);
+      const mime = sx ? XLSX : "image/jpeg", taken = new Date(f.file.lastModified || Date.now()).toISOString();
+      const r = f.kind === "receipt"
+        ? await rpc("g_upload", {p_name: c.name, p_pin: c.pin, p_filename: f.file.name || "photo.jpg", p_mime: mime, p_data: b64, p_taken: taken})
+        : await rpc("g_upload_file", {p_name: c.name, p_pin: c.pin, p_filename: f.file.name || "file", p_mime: mime, p_data: b64, p_taken: taken, p_kind: f.kind});
       if (!r.ok) throw new Error(pErr(r)); f.state = "완료"; ok++;
     } catch (e) { f.state = "실패"; fails.push(`${f.file.name || "사진"}: ${e.message === "decode" ? "사진을 열 수 없어요 (HEIC 등)" : e.message === "too big" ? "너무 커서 줄일 수 없어요" : e.message}`); }
   }
-  P.files.filter(f => f.state === "완료").forEach(f => URL.revokeObjectURL(f.url));
+  P.files.filter(f => f.state === "완료" && f.url).forEach(f => URL.revokeObjectURL(f.url));
   P.files = P.files.filter(f => f.state !== "완료"); P.files.forEach(f => f.state = "");
   P.busy = false; paintThumbs();
-  setMsg((ok ? `${ok}장을 올렸어요. 아래 '맥에서 읽기'를 눌러 주세요.` : "") + (fails.length ? `\n올리지 못한 사진 ${fails.length}장:\n` + fails.join("\n") : ""), !ok && fails.length > 0);
+  setMsg((ok ? `${ok}개를 올렸어요. 아래 '맥에서 읽기'를 눌러 주세요.` : "") + (fails.length ? `\n올리지 못한 파일 ${fails.length}개:\n` + fails.join("\n") : ""), !ok && fails.length > 0);
   refreshStatus();
 }
 async function requestRead() {
@@ -581,7 +609,7 @@ function paintStatus() {
   const age = r.runner_at ? (Date.parse(r.now) - Date.parse(r.runner_at)) / 1000 : null, alive = age !== null && age < 180;
   $("pRunner").className = "pill " + (alive ? "on" : "off");
   $("pRunner").innerHTML = `<i></i>${alive ? "맥 연결됨" : age === null ? "맥 응답 없음" : `맥 응답 없음 (${Math.max(1, Math.round(age / 60))}분 전)`}`;
-  $("pPending").innerHTML = r.items.length ? r.items.map(it => `<div class="pend"><span>${esc(it.filename)}<small>${tfmt(it.taken_at || it.created_at)} · ${esc(it.uploader || "")}</small></span><button data-id="${it.id}" aria-label="지우기" type="button">×</button></div>`).join("")
+  $("pPending").innerHTML = r.items.length ? r.items.map(it => `<div class="pend"><span>${it.kind === "hyundai" ? '<span class="tag">현대카드</span> ' : it.kind === "samsung" ? '<span class="tag">삼성카드</span> ' : ""}${esc(it.filename)}<small>${tfmt(it.taken_at || it.created_at)} · ${esc(it.uploader || "")}</small></span><button data-id="${it.id}" aria-label="지우기" type="button">×</button></div>`).join("")
     : '<div class="sub" style="padding:4px 0 6px">대기 중인 사진이 없어요.</div>';
   const j = r.job, active = ["requested", "running"].includes(j.status);
   $("pRead").disabled = active || !r.items.length;
@@ -591,7 +619,7 @@ function paintStatus() {
   if (j.status === "requested") h = `<div class="job"><span class="spin"></span><b style="display:inline">맥이 확인하길 기다리는 중</b><div class="hint">보통 1분 안에 시작돼요.${alive ? "" : " 지금 맥이 응답하지 않아요. 맥이 켜지면 시작돼요."}</div></div>`;
   else if (j.status === "running") h = `<div class="job"><span class="spin"></span><b style="display:inline">맥이 읽는 중</b><div class="hint">${esc(j.message || "")}</div></div>`;
   else if (j.status === "done") { const d = j.detail || {}, ul = a => "<ul>" + a.map(x => `<li>${esc(x)}</li>`).join("") + "</ul>";
-    h = `<div class="job ok"><b>✓ 끝났어요</b>${esc(j.message || "")}${(d.unverified || []).length ? `<div class="hint"><b style="display:inline;color:var(--warn)">검증 안 됨 · 꼬리표 달아 등록</b></div>${ul(d.unverified)}` : ""}${(d.updated_items || []).length ? `<div class="hint"><b style="display:inline;color:var(--down)">업데이트 · 기존 불완전 기록을 더 나은 정보로 바꿨어요</b></div>${ul(d.updated_items)}` : ""}${(d.duplicates || []).length ? `<div class="hint"><b style="display:inline">중복 · 이미 기록돼 있어 건너뛰었어요</b></div>${ul(d.duplicates)}` : ""}${(d.skipped || []).length ? `<div class="hint"><b style="display:inline;color:var(--over)">등록 안 함</b></div>${ul(d.skipped)}` : ""}<div class="hint">${tfmt(j.finished_at)}</div></div>`; }
+    h = `<div class="job ok"><b>✓ 끝났어요</b>${esc(j.message || "")}${(d.unverified || []).length ? `<div class="hint"><b style="display:inline;color:var(--warn)">검증 안 됨 · 꼬리표 달아 등록</b></div>${ul(d.unverified)}` : ""}${(d.statements || []).length ? `<div class="hint"><b style="display:inline">카드 명세서 반영 (합계 검산 통과)</b></div>${ul(d.statements)}` : ""}${(d.updated_items || []).length ? `<div class="hint"><b style="display:inline;color:var(--down)">업데이트 · 기존 불완전 기록을 더 나은 정보로 바꿨어요</b></div>${ul(d.updated_items)}` : ""}${(d.duplicates || []).length ? `<div class="hint"><b style="display:inline">중복 · 이미 기록돼 있어 건너뛰었어요</b></div>${ul(d.duplicates)}` : ""}${(d.skipped || []).length ? `<div class="hint"><b style="display:inline;color:var(--over)">등록 안 함</b></div>${ul(d.skipped)}` : ""}<div class="hint">${tfmt(j.finished_at)}</div></div>`; }
   else if (j.status === "error") h = `<div class="job err"><b>읽지 못했어요</b>${esc(j.message || "")}${errs.length ? "<ul>" + errs.map(x => `<li>${esc(x)}</li>`).join("") + "</ul>" : ""}<div class="hint">서버의 사진은 그대로예요. 문제 있는 사진은 위 목록에서 × 로 지우고 다시 올린 뒤 읽기를 눌러 주세요. ${tfmt(j.finished_at)}</div></div>`;
   $("pJob").innerHTML = h;
 }
