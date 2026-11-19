@@ -170,6 +170,36 @@ td.up{color:var(--up)}td.down{color:var(--down)}
 .tabbar button.on{color:var(--accent)}
 main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 
+/* 사진 탭 */
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 16px;font-weight:500}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
+.btn:disabled{opacity:.4;cursor:default}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-top:12px}
+.thumb{position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--soft);border:1px solid var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:1}
+.thumb .st{position:absolute;left:0;right:0;bottom:0;padding:2px 4px;font-size:11px;background:rgba(0,0,0,.6);color:#fff;text-align:center}
+.pmsg{margin-top:10px;font-size:13px;color:var(--sub);white-space:pre-line}
+.pmsg.bad{color:var(--over)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--sub)}
+.pill.on i{background:var(--down)}.pill.off i{background:var(--warn)}
+.pend{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding:8px 0;font-size:13px}
+.pend:first-of-type{border-top:0}
+.pend span{flex:1;min-width:0;overflow-wrap:anywhere}
+.pend small{display:block;color:var(--sub)}
+.pend button{border:0;background:none;color:var(--sub);font-size:18px;width:30px;height:30px}
+.job{margin-top:12px;border-radius:12px;padding:12px 14px;font-size:14px;background:var(--soft)}
+.job.ok{background:var(--accent-soft)}
+.job.err{background:color-mix(in srgb,var(--over) 14%,var(--card));border:1px solid var(--over)}
+.job b{display:block;margin-bottom:4px}
+.job ul{margin:6px 0 0;padding-left:18px;font-size:13px}
+.job .hint{margin-top:8px;font-size:12px;color:var(--sub)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+
 /* login */
 .login{max-width:360px;margin:12vh auto 0;text-align:center}
 .login .logo{width:56px;height:56px;border-radius:16px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
@@ -221,6 +251,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
       <div id="listBody"></div>
     </section>
     <section id="v-trend" hidden></section>
+    <section id="v-photo" hidden></section>
     <div class="foot"><button id="logout" type="button">로그아웃</button></div>
   </main>
 
@@ -228,6 +259,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
     <button data-tab="sum" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v9h-9"/></svg>요약</button>
     <button data-tab="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>내역</button>
     <button data-tab="trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>추이</button>
+    <button data-tab="photo" id="photoTab" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>사진</button>
   </div></nav>
 </div>
 
@@ -401,6 +433,120 @@ function renderTrend() {
   b.onscroll = () => { state.tscroll = b.scrollLeft; };
 }
 
+// ---------- 사진: 올리기 + 맥에서 읽기 ----------
+let CAN_UP = false;
+const P = {files: [], built: false, st: null, timer: null, busy: false, lastStatus: null};
+const PERR = {not_allowed: "사진 올리기 권한이 없어요.", bad_size: "사진이 너무 크거나 비어 있어요.", bad_type: "JPEG/PNG 사진만 올릴 수 있어요.",
+  inbox_full: "서버에 대기 중인 사진이 너무 많아요(150장). 먼저 맥에서 읽어 주세요.", busy: "맥이 작업 중이에요. 끝난 뒤에 다시 해주세요.",
+  nothing: "읽을 사진이 없어요.", bad_login: "로그인이 풀렸어요. 다시 로그인해 주세요.", locked: "5번 틀려서 10분간 잠겼어요.", network: "인터넷 연결을 확인해주세요."};
+const creds = () => fetchStore(SK);
+const pErr = r => PERR[r.error] || "오류: " + (r.error || r.message || "알 수 없음");
+const tfmt = s => { if (!s) return ""; const d = new Date(s); return isNaN(d) ? "" : `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+
+function buildPhoto() {
+  if (P.built) return; P.built = true;
+  $("v-photo").innerHTML = `
+    <div class="card"><h2>영수증 사진 올리기</h2>
+      <div class="sub">영수증 사진이나 캡처를 고르면 서버에 임시로 보관돼요. 읽고 나면 서버에서 지워져요. 긴 영수증은 겹치게 여러 장 찍어 주세요.</div>
+      <input id="pFiles" type="file" accept="image/*" multiple hidden>
+      <div class="btns"><button class="btn" id="pPick" type="button">+ 사진 고르기</button><button class="btn pri" id="pUp" type="button" disabled>올리기</button></div>
+      <div class="thumbs" id="pThumbs"></div>
+      <div class="pmsg" id="pMsg"></div></div>
+    <div class="card"><h2>맥에서 읽기<em><span class="pill" id="pRunner"></span></em></h2>
+      <div id="pPending"></div>
+      <div class="btns"><button class="btn pri" id="pRead" type="button" disabled>맥에서 읽기</button></div>
+      <div id="pJob"></div>
+      <div class="sub" style="margin-top:10px">올린 사진은 맥이 읽어요. 모두 검산에 통과해야 가계부에 반영되고, 하나라도 안 되면 가계부는 바뀌지 않고 이유가 여기에 표시돼요. 맥이 꺼져 있거나 잠자기 중이면 켜질 때까지 기다려요.</div></div>`;
+  $("pPick").onclick = () => $("pFiles").click();
+  $("pFiles").onchange = e => { const add = [...e.target.files].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|heic)$/i.test(f.name));
+    add.forEach(f => P.files.push({file: f, url: URL.createObjectURL(f), state: ""})); P.files = P.files.slice(0, 30); e.target.value = ""; paintThumbs(); };
+  $("pThumbs").onclick = e => { const b = e.target.closest("button"); if (!b || P.busy) return; const i = +b.dataset.i; URL.revokeObjectURL(P.files[i].url); P.files.splice(i, 1); paintThumbs(); };
+  $("pUp").onclick = uploadAll;
+  $("pRead").onclick = requestRead;
+  $("pPending").onclick = async e => { const b = e.target.closest("button"); if (!b) return; b.disabled = true;
+    const c = creds(); const r = await rpc("g_inbox_remove", {p_name: c.name, p_pin: c.pin, p_id: b.dataset.id});
+    if (!r.ok) setMsg(pErr(r), true); refreshStatus(); };
+}
+function setMsg(t, bad) { const m = $("pMsg"); if (m) { m.textContent = t || ""; m.className = "pmsg" + (bad ? " bad" : ""); } }
+function paintThumbs() {
+  $("pThumbs").innerHTML = P.files.map((f, i) => `<div class="thumb"><img src="${f.url}" alt=""><button data-i="${i}" aria-label="빼기" type="button">×</button>${f.state ? `<div class="st">${esc(f.state)}</div>` : ""}</div>`).join("");
+  $("pUp").disabled = !P.files.length || P.busy; $("pUp").textContent = P.files.length ? `${P.files.length}장 올리기` : "올리기";
+}
+function toJpeg(file) {   // shrink (long side 2600px) and re-encode as JPEG so uploads stay small but text stays readable
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      for (const [side, q] of [[2600, .85], [2600, .72], [2000, .72], [1600, .7]]) {
+        const sc = Math.min(1, side / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
+        c.width = Math.round(img.naturalWidth * sc); c.height = Math.round(img.naturalHeight * sc);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        const b64 = c.toDataURL("image/jpeg", q).split(",")[1];
+        if (b64 && b64.length < 3500000) return resolve(b64);
+      }
+      reject(new Error("too big"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("decode")); };
+    img.src = url;
+  });
+}
+async function uploadAll() {
+  const c = creds(); if (!c || P.busy || !P.files.length) return;
+  P.busy = true; paintThumbs(); setMsg("");
+  let ok = 0; const fails = [];
+  for (let i = 0; i < P.files.length; i++) {
+    const f = P.files[i]; f.state = "올리는 중"; paintThumbs(); setMsg(`올리는 중 ${i + 1}/${P.files.length}`);
+    try {
+      const b64 = await toJpeg(f.file);
+      const r = await rpc("g_upload", {p_name: c.name, p_pin: c.pin, p_filename: f.file.name || "photo.jpg", p_mime: "image/jpeg", p_data: b64,
+        p_taken: new Date(f.file.lastModified || Date.now()).toISOString()});
+      if (!r.ok) throw new Error(pErr(r)); f.state = "완료"; ok++;
+    } catch (e) { f.state = "실패"; fails.push(`${f.file.name || "사진"}: ${e.message === "decode" ? "사진을 열 수 없어요 (HEIC 등)" : e.message === "too big" ? "너무 커서 줄일 수 없어요" : e.message}`); }
+  }
+  P.files.filter(f => f.state === "완료").forEach(f => URL.revokeObjectURL(f.url));
+  P.files = P.files.filter(f => f.state !== "완료"); P.files.forEach(f => f.state = "");
+  P.busy = false; paintThumbs();
+  setMsg((ok ? `${ok}장을 올렸어요. 아래 '맥에서 읽기'를 눌러 주세요.` : "") + (fails.length ? `\n올리지 못한 사진 ${fails.length}장:\n` + fails.join("\n") : ""), !ok && fails.length > 0);
+  refreshStatus();
+}
+async function requestRead() {
+  const c = creds(); if (!c) return; $("pRead").disabled = true;
+  const r = await rpc("g_job_request", {p_name: c.name, p_pin: c.pin});
+  if (!r.ok) setMsg(pErr(r), true); else setMsg("");
+  refreshStatus();
+}
+function stopPoll() { if (P.timer) { clearInterval(P.timer); P.timer = null; } }
+function openPhoto() { buildPhoto(); paintThumbs(); refreshStatus(); }
+async function refreshStatus() {
+  const c = creds(); if (!c) return;
+  const r = await rpc("g_status", {p_name: c.name, p_pin: c.pin});
+  if (!r.ok) { $("pJob") && ($("pJob").innerHTML = `<div class="job err"><b>상태를 불러오지 못했어요</b>${esc(pErr(r))}</div>`); return; }
+  const prev = P.st; P.st = r; paintStatus();
+  const active = ["requested", "running"].includes(r.job.status);
+  if (active && !P.timer && state.tab === "photo") P.timer = setInterval(refreshStatus, 4000);
+  if (!active) stopPoll();
+  // finished successfully while we were watching -> reload the ledger so the new entries show up
+  if (prev && ["requested", "running"].includes(prev.job.status) && r.job.status === "done") load(c.name, c.pin);
+}
+function paintStatus() {
+  const r = P.st; if (!r || !$("pJob")) return;
+  const age = r.runner_at ? (Date.parse(r.now) - Date.parse(r.runner_at)) / 1000 : null, alive = age !== null && age < 180;
+  $("pRunner").className = "pill " + (alive ? "on" : "off");
+  $("pRunner").innerHTML = `<i></i>${alive ? "맥 연결됨" : age === null ? "맥 응답 없음" : `맥 응답 없음 (${Math.max(1, Math.round(age / 60))}분 전)`}`;
+  $("pPending").innerHTML = r.items.length ? r.items.map(it => `<div class="pend"><span>${esc(it.filename)}<small>${tfmt(it.taken_at || it.created_at)} · ${esc(it.uploader || "")}</small></span><button data-id="${it.id}" aria-label="지우기" type="button">×</button></div>`).join("")
+    : '<div class="sub" style="padding:4px 0 6px">대기 중인 사진이 없어요.</div>';
+  const j = r.job, active = ["requested", "running"].includes(j.status);
+  $("pRead").disabled = active || !r.items.length;
+  $("pRead").textContent = active ? "맥이 작업 중…" : r.items.length ? `맥에서 읽기 (${r.items.length}장)` : "맥에서 읽기";
+  const errs = (j.detail && j.detail.errors) || [];
+  let h = "";
+  if (j.status === "requested") h = `<div class="job"><span class="spin"></span><b style="display:inline">맥이 확인하길 기다리는 중</b><div class="hint">보통 1분 안에 시작돼요.${alive ? "" : " 지금 맥이 응답하지 않아요. 맥이 켜지면 시작돼요."}</div></div>`;
+  else if (j.status === "running") h = `<div class="job"><span class="spin"></span><b style="display:inline">맥이 읽는 중</b><div class="hint">${esc(j.message || "")}</div></div>`;
+  else if (j.status === "done") h = `<div class="job ok"><b>✓ 끝났어요</b>${esc(j.message || "")}<div class="hint">${tfmt(j.finished_at)}</div></div>`;
+  else if (j.status === "error") h = `<div class="job err"><b>읽지 못했어요</b>${esc(j.message || "")}${errs.length ? "<ul>" + errs.map(x => `<li>${esc(x)}</li>`).join("") + "</ul>" : ""}<div class="hint">서버의 사진은 그대로예요. 문제 있는 사진은 위 목록에서 × 로 지우고 다시 올린 뒤 읽기를 눌러 주세요. ${tfmt(j.finished_at)}</div></div>`;
+  $("pJob").innerHTML = h;
+}
+
 // ---------- routing / events ----------
 function renderHeader() {
   const real = state.month !== "전체", i = MONTHS.indexOf(state.month);
@@ -411,12 +557,13 @@ function renderHeader() {
 }
 function show(tab) {
   state.tab = tab; store("g-tab", tab);
-  ["sum", "list", "trend"].forEach(t => $("v-" + t).hidden = t !== tab);
+  ["sum", "list", "trend", "photo"].forEach(t => $("v-" + t).hidden = t !== tab);
   document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-  $("monthSel").parentNode.parentNode.style.visibility = tab === "trend" ? "hidden" : "visible";
+  $("monthSel").parentNode.parentNode.style.visibility = (tab === "trend" || tab === "photo") ? "hidden" : "visible";
   if (tab === "sum") renderSummary();
   if (tab === "list") { buildListControls(); paintList(); }
   if (tab === "trend") renderTrend();
+  if (tab === "photo") openPhoto(); else stopPoll();
   window.scrollTo(0, 0);
 }
 function setMonth(m) { state.month = m; store("g-month", m); state.limit = 120; renderHeader(); show(state.tab); }
@@ -467,7 +614,10 @@ function applyData(r) {
   CATS = Object.keys(catSums(ROWS));
   const sm = fetchStore("g-month"), st = fetchStore("g-tab");
   if (!state.month) state.month = (sm && (sm === "전체" || MONTHS.includes(sm))) ? sm : MONTHS[MONTHS.length - 1];
-  if (st && ["sum", "list", "trend"].includes(st) && !renderTrend.started) state.tab = st;
+  CAN_UP = !!r.can_upload;
+  $("photoTab").hidden = !CAN_UP;
+  if (st && ["sum", "list", "trend"].concat(CAN_UP ? ["photo"] : []).includes(st) && !renderTrend.started) state.tab = st;
+  if (state.tab === "photo" && !CAN_UP) state.tab = "sum";
   renderTrend.started = true;
   view("app"); renderHeader(); show(state.tab);
 }
