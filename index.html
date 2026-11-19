@@ -14,18 +14,18 @@
 :root{
   --bg:#f2f5f4; --card:#ffffff; --text:#14201e; --sub:#65736f; --line:#e1e8e6; --soft:#e9efed;
   --accent:#0f766e; --accent-soft:#d5ece8; --on-accent:#ffffff;
-  --up:#c2410c; --down:#0f766e; --over:#b91c1c; --warn:#b45309;
+  --up:#c2410c; --down:#0f766e; --over:#b91c1c; --warn:#b45309; --on-warn:#ffffff;
   --shadow:0 1px 2px rgba(20,32,30,.05),0 4px 14px rgba(20,32,30,.05);
   --font:"Noto Sans KR",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0e1514; --card:#162120; --text:#e8f0ee; --sub:#92a39f; --line:#243230; --soft:#1d2b29;
   --accent:#3fc3b4; --accent-soft:#17403b; --on-accent:#08201d;
-  --up:#fb923c; --down:#3fc3b4; --over:#f87171; --warn:#fbbf24; --shadow:none; color-scheme:dark}}
+  --up:#fb923c; --down:#3fc3b4; --over:#f87171; --warn:#fbbf24; --on-warn:#1b1300; --shadow:none; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0e1514; --card:#162120; --text:#e8f0ee; --sub:#92a39f; --line:#243230; --soft:#1d2b29;
   --accent:#3fc3b4; --accent-soft:#17403b; --on-accent:#08201d;
-  --up:#fb923c; --down:#3fc3b4; --over:#f87171; --warn:#fbbf24; --shadow:none; color-scheme:dark}
+  --up:#fb923c; --down:#3fc3b4; --over:#f87171; --warn:#fbbf24; --on-warn:#1b1300; --shadow:none; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
@@ -138,6 +138,13 @@ button{cursor:pointer}
 .item{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--sub);padding:2px 0}
 .item span:first-child{min-width:0;overflow-wrap:anywhere}
 .warn{color:var(--warn);font-size:12px;font-weight:500}
+.unv{display:inline-block;font-size:11px;font-weight:700;padding:0 8px;line-height:19px;border-radius:999px;background:var(--warn);color:var(--on-warn);vertical-align:1px;margin-left:4px;white-space:nowrap}
+.why{font-size:12px;color:var(--warn);margin-top:4px;overflow-wrap:anywhere}
+.row.unvrow{border-style:dashed;border-color:var(--warn)}
+.unvbar{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;margin-bottom:12px;padding:12px 16px;border-radius:14px;border:1px dashed var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--card));font-size:14px}
+.unvbar b{color:var(--warn)}
+.chip.unvchip{border-color:var(--warn);color:var(--warn)}
+.chip.unvchip.on{background:var(--warn);color:var(--on-warn)}
 .more{display:block;width:100%;margin:10px 0;padding:11px;border:1px solid var(--line);background:var(--card);border-radius:12px;color:var(--sub)}
 .empty{text-align:center;padding:48px 8px;color:var(--sub)}
 
@@ -268,7 +275,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 const $ = id => document.getElementById(id);
 let ROWS = [], COLORS = {}, BUDGET = {"기본": {}, "월별": {}, "기록": [], "상태": ""}, COVER = "";
 let MONTHS = [], CATS = [];
-const state = {tab: "sum", month: null, q: "", cats: new Set(), srcs: new Set(), sort: "date", limit: 120, tcat: "전체", tmonth: null};
+const state = {tab: "sum", month: null, q: "", cats: new Set(), srcs: new Set(), unv: false, sort: "date", limit: 120, tcat: "전체", tmonth: null};
 
 // ---------- helpers ----------
 const color = c => COLORS[c] || "#8a8f98";
@@ -330,6 +337,8 @@ function renderSummary() {
   }
   html += `<div class="card hero"><div class="lbl">${m === "전체" ? "전체 기간 지출" : m + " 지출"}</div>
     <div class="big num">${Math.round(total).toLocaleString("ko-KR")}<span>원</span></div>${deltaHtml}${meter}</div>`;
+  const unvRows = rows.filter(r => r.ok === false);
+  if (unvRows.length) html += `<button class="unvbar" data-unv="1" type="button"><span><b>검증 안 된 항목 ${unvRows.length}건</b> · ${won(sum(unvRows.map(r => r.amount)))}<br><span class="sub">꼬리표를 달아 등록했어요. 눌러서 확인하세요.</span></span><span>›</span></button>`;
   // donut + categories
   const list = Object.entries(by).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   const pos = sum(list.map(x => x[1])) || 1;
@@ -363,14 +372,15 @@ function buildListControls() {
   const cs = Object.keys(by).sort((a, b) => by[b] - by[a]);
   $("catChips").innerHTML = `<button class="chip ${state.cats.size ? "" : "on"}" data-c="">전체</button>` + cs.map(c =>
     `<button class="chip ${state.cats.has(c) ? "on" : ""}" data-c="${esc(c)}"><span class="dot" style="background:${color(c)}"></span>${esc(c)}</button>`).join("");
-  const srcs = [...new Set(rows.map(r => r.src))].sort();
-  $("srcChips").innerHTML = srcs.length > 1 ? srcs.map(s => `<button class="chip sm ${state.srcs.has(s) ? "on" : ""}" data-s="${esc(s)}">${esc(s)}</button>`).join("") : "";
+  const srcs = [...new Set(rows.map(r => r.src))].sort(), nu = rows.filter(r => r.ok === false).length;
+  $("srcChips").innerHTML = (nu ? `<button class="chip sm unvchip ${state.unv ? "on" : ""}" data-u="1">검증 안 됨만 ${nu}</button>` : "") +
+    (srcs.length > 1 ? srcs.map(s => `<button class="chip sm ${state.srcs.has(s) ? "on" : ""}" data-s="${esc(s)}">${esc(s)}</button>`).join("") : "");
 }
 function paintList() {
   const {cats, srcs, q} = state, ql = q.trim().toLowerCase();
   const rowAmt = r => cats.size ? sum(r.items.filter(i => cats.has(i.category)).map(i => i.amount)) : r.amount;
   let rows = monthRows(state.month).filter(r =>
-    (!cats.size || r.items.some(i => cats.has(i.category))) && (!srcs.size || srcs.has(r.src)) &&
+    (!cats.size || r.items.some(i => cats.has(i.category))) && (!srcs.size || srcs.has(r.src)) && (!state.unv || r.ok === false) &&
     (!ql || r.store.toLowerCase().includes(ql) || r.items.some(i => i.name.toLowerCase().includes(ql))));
   const total = sum(rows.map(rowAmt));
   $("listInfo").innerHTML = `<span class="num">${rows.length}건 · <b style="color:var(--text)">${won(total)}</b></span>`;
@@ -381,9 +391,9 @@ function paintList() {
   shown.forEach(r => {
     if (state.sort === "date" && r.date !== last) { last = r.date; html += `<div class="day num"><span>${r.date.slice(5).replace("-", "/")} (${dow(r.date)})</span><span>${won(dayTot[r.date])}</span></div>`; }
     const has = r.items.length > 0 && !r.flat, rs = catSums([r]), keys = Object.keys(rs).sort((a, b) => rs[b] - rs[a]), a = rowAmt(r);
-    html += `<div class="row ${has ? "click" : ""}" style="--rc:${color(keys[0])}"><div class="top2"><div class="nm-wrap" style="min-width:0">
-      <div class="nm">${esc(r.store)}${r.ok === false ? ' <span class="warn">확인필요</span>' : ""}</div>
-      <div class="meta">${keys.map(k => `<span class="tag"><span class="dot" style="background:${color(k)};width:7px;height:7px"></span>${esc(k)}${keys.length > 1 ? " " + rs[k].toLocaleString("ko-KR") : ""}</span>`).join("")}<span>${esc(r.src)}${state.sort === "amount" ? " · " + r.date.slice(2).replace(/-/g, ".") : ""}</span></div></div>
+    html += `<div class="row ${has ? "click" : ""} ${r.ok === false ? "unvrow" : ""}" style="--rc:${color(keys[0])}"><div class="top2"><div class="nm-wrap" style="min-width:0">
+      <div class="nm">${esc(r.store)}${r.ok === false ? '<span class="unv">검증 안 됨</span>' : ""}</div>
+      <div class="meta">${keys.map(k => `<span class="tag"><span class="dot" style="background:${color(k)};width:7px;height:7px"></span>${esc(k)}${keys.length > 1 ? " " + rs[k].toLocaleString("ko-KR") : ""}</span>`).join("")}${r.photo ? `<span class="tag">사진 ${esc(r.photo)}</span>` : ""}<span>${esc(r.src)}${state.sort === "amount" ? " · " + r.date.slice(2).replace(/-/g, ".") : ""}</span></div>${r.ok === false && r.why ? `<div class="why">${esc(r.why)}</div>` : ""}</div>
       <div class="am num ${a < 0 ? "neg" : ""}">${won(a)}</div></div>
       ${has ? `<div class="items">${r.items.map(i => `<div class="item"><span><span class="dot" style="background:${color(i.category)};width:7px;height:7px;margin-right:6px"></span>${esc(i.name)}</span><span class="num">${won(i.amount)}</span></div>`).join("")}</div>` : ""}</div>`;
   });
@@ -456,7 +466,7 @@ function buildPhoto() {
       <div id="pPending"></div>
       <div class="btns"><button class="btn pri" id="pRead" type="button" disabled>맥에서 읽기</button></div>
       <div id="pJob"></div>
-      <div class="sub" style="margin-top:10px">올린 사진은 맥이 읽어요. 모두 검산에 통과해야 가계부에 반영되고, 하나라도 안 되면 가계부는 바뀌지 않고 이유가 여기에 표시돼요. 맥이 꺼져 있거나 잠자기 중이면 켜질 때까지 기다려요.</div></div>`;
+      <div class="sub" style="margin-top:10px">올린 사진은 맥이 읽어요. 검산에 통과한 영수증은 그대로, 통과하지 못한 영수증도 '검증 안 됨' 꼬리표와 사진 번호를 달아 가계부에 등록돼요. 영수증이 아니거나 금액을 못 읽은 사진은 등록되지 않고 여기에 표시돼요. 맥에서 오류가 나면 가계부는 바뀌지 않고 이유가 표시돼요. 맥이 꺼져 있거나 잠자기 중이면 켜질 때까지 기다려요.</div></div>`;
   $("pPick").onclick = () => $("pFiles").click();
   $("pFiles").onchange = e => { const add = [...e.target.files].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|heic)$/i.test(f.name));
     add.forEach(f => P.files.push({file: f, url: URL.createObjectURL(f), state: ""})); P.files = P.files.slice(0, 30); e.target.value = ""; paintThumbs(); };
@@ -542,7 +552,8 @@ function paintStatus() {
   let h = "";
   if (j.status === "requested") h = `<div class="job"><span class="spin"></span><b style="display:inline">맥이 확인하길 기다리는 중</b><div class="hint">보통 1분 안에 시작돼요.${alive ? "" : " 지금 맥이 응답하지 않아요. 맥이 켜지면 시작돼요."}</div></div>`;
   else if (j.status === "running") h = `<div class="job"><span class="spin"></span><b style="display:inline">맥이 읽는 중</b><div class="hint">${esc(j.message || "")}</div></div>`;
-  else if (j.status === "done") h = `<div class="job ok"><b>✓ 끝났어요</b>${esc(j.message || "")}<div class="hint">${tfmt(j.finished_at)}</div></div>`;
+  else if (j.status === "done") { const d = j.detail || {}, ul = a => "<ul>" + a.map(x => `<li>${esc(x)}</li>`).join("") + "</ul>";
+    h = `<div class="job ok"><b>✓ 끝났어요</b>${esc(j.message || "")}${(d.unverified || []).length ? `<div class="hint"><b style="display:inline;color:var(--warn)">검증 안 됨 · 꼬리표 달아 등록</b></div>${ul(d.unverified)}` : ""}${(d.skipped || []).length ? `<div class="hint"><b style="display:inline;color:var(--over)">등록 안 함</b></div>${ul(d.skipped)}` : ""}<div class="hint">${tfmt(j.finished_at)}</div></div>`; }
   else if (j.status === "error") h = `<div class="job err"><b>읽지 못했어요</b>${esc(j.message || "")}${errs.length ? "<ul>" + errs.map(x => `<li>${esc(x)}</li>`).join("") + "</ul>" : ""}<div class="hint">서버의 사진은 그대로예요. 문제 있는 사진은 위 목록에서 × 로 지우고 다시 올린 뒤 읽기를 눌러 주세요. ${tfmt(j.finished_at)}</div></div>`;
   $("pJob").innerHTML = h;
 }
@@ -566,14 +577,15 @@ function show(tab) {
   if (tab === "photo") openPhoto(); else stopPoll();
   window.scrollTo(0, 0);
 }
-function setMonth(m) { state.month = m; store("g-month", m); state.limit = 120; renderHeader(); show(state.tab); }
+function setMonth(m) { state.unv = false; state.month = m; store("g-month", m); state.limit = 120; renderHeader(); show(state.tab); }
 $("prevM").onclick = () => setMonth(MONTHS[MONTHS.indexOf(state.month) - 1]);
 $("nextM").onclick = () => setMonth(MONTHS[MONTHS.indexOf(state.month) + 1]);
 $("monthSel").onchange = e => setMonth(e.target.value);
 document.querySelector(".tabbar").onclick = e => { const b = e.target.closest("button"); if (b) show(b.dataset.tab); };
 $("v-sum").onclick = e => {
-  const c = e.target.closest(".cat"), s = e.target.closest(".store");
-  if (c) { state.cats = new Set([c.dataset.cat]); state.srcs = new Set(); state.q = ""; $("q").value = ""; show("list"); }
+  const c = e.target.closest(".cat"), s = e.target.closest(".store"), u = e.target.closest(".unvbar");
+  if (u) { state.unv = true; state.cats = new Set(); state.srcs = new Set(); state.q = ""; $("q").value = ""; show("list"); }
+  else if (c) { state.cats = new Set([c.dataset.cat]); state.srcs = new Set(); state.q = ""; $("q").value = ""; show("list"); }
   else if (s) { state.q = s.dataset.q; state.cats = new Set(); state.srcs = new Set(); $("q").value = state.q; show("list"); }
 };
 $("v-trend").onclick = e => {
@@ -588,7 +600,7 @@ $("catChips").onclick = e => { const b = e.target.closest(".chip"); if (!b) retu
   if (!c) state.cats = new Set(); else state.cats.has(c) ? state.cats.delete(c) : state.cats.add(c);
   state.limit = 120; buildListControls(); paintList(); };
 $("srcChips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; const s = b.dataset.s;
-  state.srcs.has(s) ? state.srcs.delete(s) : state.srcs.add(s); state.limit = 120; buildListControls(); paintList(); };
+  if (b.dataset.u) state.unv = !state.unv; else state.srcs.has(s) ? state.srcs.delete(s) : state.srcs.add(s); state.limit = 120; buildListControls(); paintList(); };
 document.querySelector(".seg").onclick = e => { const b = e.target.closest("button"); if (!b) return; state.sort = b.dataset.sort; state.limit = 120;
   document.querySelectorAll(".seg button").forEach(x => x.classList.toggle("on", x === b)); paintList(); };
 $("listBody").onclick = e => { if (e.target.id === "moreBtn") { state.limit += 200; paintList(); return; }
