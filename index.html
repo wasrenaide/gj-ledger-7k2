@@ -190,6 +190,17 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb button{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:1}
 .thumb .st{position:absolute;left:0;right:0;bottom:0;padding:2px 4px;font-size:11px;background:rgba(0,0,0,.6);color:#fff;text-align:center}
+.help{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--sub);font-size:12px;font-weight:700;line-height:1;padding:0;margin-left:4px;vertical-align:1px}
+.help:active{background:var(--soft)}
+.pickrow{display:flex;align-items:center;gap:8px;margin-top:8px}
+.pickrow .btn{flex:1;text-align:left}
+.pickrow .help{width:34px;height:34px;margin-left:0;font-size:15px}
+#helpBack{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#helpBox{background:var(--card);color:var(--text);border-radius:16px;padding:18px 18px 16px;max-width:420px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+#helpBox h3{margin:0 0 10px;font-size:16px}
+#helpBox p{margin:0 0 16px;font-size:14px;line-height:1.65;white-space:pre-line}
+#helpBox .btn{width:100%;text-align:center}
 .thumb.doc{display:flex;align-items:center;justify-content:center;background:var(--accent-soft)}
 .docin{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;text-align:center;font-size:10px;color:var(--text);overflow-wrap:anywhere}
 .docin b{font-size:14px;color:var(--accent)}
@@ -237,6 +248,8 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
     <div class="msg" id="loginMsg"></div>
   </form>
 </div>
+
+<div id="helpBack" hidden><div id="helpBox" role="dialog" aria-modal="true" aria-labelledby="helpT"><h3 id="helpT"></h3><p id="helpB"></p><button id="helpX" class="btn pri" type="button" onclick="closeHelp()">닫기</button></div></div>
 
 <div id="loadView" class="empty" hidden>불러오는 중…</div>
 
@@ -290,6 +303,21 @@ const $ = id => document.getElementById(id);
 let ROWS = [], COLORS = {}, BUDGET = {"기본": {}, "월별": {}, "기록": [], "상태": ""}, COVER = "";
 let MONTHS = [], CATS = [];
 const state = {tab: "sum", month: null, q: "", cats: new Set(), srcs: new Set(), unv: false, ugroup: "전체", sort: "date", limit: 120, tcat: "전체", tmonth: null};
+
+// ---------- 도움말 (? 아이콘 → 팝업) ----------
+const HELP = {
+  up: {t: "올리기", b: "고른 파일은 서버에 임시로 보관돼요. 맥이 읽고 나면 서버에서 지워져요.\n올리기 권한이 있는 사람만 이 탭이 보여요."},
+  receipt: {t: "영수증·주문내역 사진", b: "영수증 사진이나 캡처를 올려요.\n\n• 긴 영수증은 겹치게 여러 장으로 찍어 주세요.\n• 쿠팡은 주문내역 화면을 위에서부터 캡처하면 돼요.\n• 평평하고 밝게, 빛이 반사되지 않게 찍으면 잘 읽혀요."},
+  hyundai: {t: "현대카드 명세서 (이미지)", b: "현대카드 앱의 명세서 이용내역 화면을 맨 위(명세서 날짜와 합계가 보이는 곳)부터 캡처해 올려요.\n\n• 길면 겹치게 여러 장으로 캡처해 주세요.\n• 읽은 내역의 합이 명세서 합계와 같아야만 반영돼요."},
+  samsung: {t: "삼성카드 명세서 (엑셀)", b: "삼성카드에서 받은 엑셀(.xlsx) 파일을 그대로 올려요.\n\n• 파일 이름에 날짜(samsungcard_20261114 처럼)가 있으면 그 날짜로 저장돼요.\n• 시트 합계가 청구요약과 같아야만 반영돼요."},
+  read: {t: "맥에서 읽기", b: "올린 파일을 맥이 읽어요. 맥이 켜져 있어야 하고, 꺼져 있으면 켜질 때까지 기다려요.\n\n• 검산에 통과한 영수증은 그대로 등록돼요.\n• 통과하지 못해도 날짜·금액을 읽었으면 '검증 안 됨' 꼬리표와 사진 번호를 달아 등록돼요.\n• 영수증이 아니거나 금액을 못 읽은 사진은 등록되지 않고 결과에 표시돼요.\n• 카드 명세서는 합계 검산에 통과해야만 반영돼요.\n• 같은 파일이나 영수증은 '중복'으로 알려 주고, 기존 기록이 불완전하면 더 나은 정보로 업데이트해요.\n• 맥에서 오류가 나면 가계부는 바뀌지 않고 이유가 표시돼요."},
+  unv: {t: "검증 안 된 항목", b: "영수증이나 쿠팡 주문내역으로 먼저 등록하고 '검증 안 됨' 꼬리표를 단 항목이에요.\n\n• 위의 달 선택으로 달별로 볼 수 있어요.\n• 카드 명세서가 들어오면 같은 날짜·금액의 항목은 자동으로 명세서 줄로 바뀌어 여기서 사라져요."}
+};
+const Q = k => `<button class="help" type="button" data-help="${k}" aria-label="설명 보기">?</button>`;
+function openHelp(k) { const h = HELP[k]; if (!h) return; $("helpT").textContent = h.t; $("helpB").textContent = h.b; $("helpBack").hidden = false; $("helpX").focus(); }
+function closeHelp() { $("helpBack").hidden = true; }
+document.addEventListener("click", e => { const h = e.target.closest("[data-help]"); if (h) { openHelp(h.dataset.help); } else if (e.target.id === "helpBack") closeHelp(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeHelp(); });
 
 // ---------- helpers ----------
 const color = c => COLORS[c] || "#8a8f98";
@@ -429,9 +457,8 @@ function renderUnv() {
   all.forEach(r => { const g = whyGroup(r); groups[g] = (groups[g] || 0) + 1; });
   if (state.ugroup !== "전체" && !groups[state.ugroup]) state.ugroup = "전체";
   const rows = all.filter(r => state.ugroup === "전체" || whyGroup(r) === state.ugroup).sort((a, b) => b.date.localeCompare(a.date));
-  let html = `<div class="card"><h2>검증 안 된 항목<em class="num">${m === "전체" ? "전체 기간" : m}</em></h2>
+  let html = `<div class="card"><h2><span>검증 안 된 항목 ${Q("unv")}</span><em class="num">${m === "전체" ? "전체 기간" : m}</em></h2>
     <div class="num"><span style="font-size:28px;font-weight:700;letter-spacing:-.02em">${rows.length}건</span> <span class="sub">· ${won(sum(rows.map(r => r.amount)))}</span></div>
-    <div class="sub" style="margin-top:6px">위 달 선택으로 달별로 볼 수 있어요. 영수증이나 주문내역으로 먼저 등록하고 꼬리표를 단 항목이에요. 카드 명세서가 들어오면 같은 날짜·금액의 항목은 자동으로 명세서 줄로 바뀌어 여기서 사라져요.</div>
     ${all.length ? `<div class="chips" style="margin-top:10px"><button class="chip ${state.ugroup === "전체" ? "on" : ""}" data-ug="전체">전체 ${all.length}</button>${Object.entries(groups).map(([g, n]) =>
       `<button class="chip ${state.ugroup === g ? "on" : ""}" data-ug="${esc(g)}">${esc(g)} ${n}</button>`).join("")}</div>` : ""}</div>`;
   if (!all.length) html += `<div class="empty">${m === "전체" ? "검증 안 된 항목이 없어요.<br>모든 항목이 확인됐어요." : m + "에는 검증 안 된 항목이 없어요."}${total ? `<br><button class="btn" data-allm="1" type="button" style="margin-top:12px">다른 달 포함 ${total}건 보기</button>` : ""}</div>`;
@@ -503,23 +530,20 @@ const tfmt = s => { if (!s) return ""; const d = new Date(s); return isNaN(d) ? 
 function buildPhoto() {
   if (P.built) return; P.built = true;
   $("v-photo").innerHTML = `
-    <div class="card"><h2>올리기</h2>
-      <div class="sub">고른 파일은 서버에 임시로 보관돼요. 맥이 읽고 나면 서버에서 지워져요.</div>
+    <div class="card"><h2><span>올리기 ${Q("up")}</span></h2>
       <input id="pFiles" type="file" accept="image/*" multiple hidden>
       <input id="pFilesHy" type="file" accept="image/*" multiple hidden>
       <input id="pFilesSx" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple hidden>
-      <div class="btns"><button class="btn" id="pPick" type="button">+ 영수증·주문내역 사진</button></div>
-      <div class="sub" style="margin-top:6px">긴 영수증은 겹치게 여러 장, 쿠팡은 주문내역 화면을 위에서부터 캡처해 주세요.</div>
-      <div class="btns"><button class="btn" id="pPickHy" type="button">+ 현대카드 명세서 (이미지)</button><button class="btn" id="pPickSx" type="button">+ 삼성카드 명세서 (엑셀)</button></div>
-      <div class="sub" style="margin-top:6px">현대카드: 앱의 명세서 이용내역을 맨 위부터 캡처. 삼성카드: 카드사에서 받은 엑셀(.xlsx) 그대로.</div>
+      <div class="pickrow"><button class="btn" id="pPick" type="button">+ 영수증·주문내역 사진</button>${Q("receipt")}</div>
+      <div class="pickrow"><button class="btn" id="pPickHy" type="button">+ 현대카드 명세서 (이미지)</button>${Q("hyundai")}</div>
+      <div class="pickrow"><button class="btn" id="pPickSx" type="button">+ 삼성카드 명세서 (엑셀)</button>${Q("samsung")}</div>
       <div class="btns"><button class="btn pri" id="pUp" type="button" disabled>올리기</button></div>
       <div class="thumbs" id="pThumbs"></div>
       <div class="pmsg" id="pMsg"></div></div>
-    <div class="card"><h2>맥에서 읽기<em><span class="pill" id="pRunner"></span></em></h2>
+    <div class="card"><h2><span>맥에서 읽기 ${Q("read")}</span><em><span class="pill" id="pRunner"></span></em></h2>
       <div id="pPending"></div>
       <div class="btns"><button class="btn pri" id="pRead" type="button" disabled>맥에서 읽기</button></div>
-      <div id="pJob"></div>
-      <div class="sub" style="margin-top:10px">올린 사진은 맥이 읽어요. 검산에 통과한 영수증은 그대로, 통과하지 못한 영수증도 '검증 안 됨' 꼬리표와 사진 번호를 달아 가계부에 등록돼요. 영수증이 아니거나 금액을 못 읽은 사진은 등록되지 않고 여기에 표시돼요. 맥에서 오류가 나면 가계부는 바뀌지 않고 이유가 표시돼요. 맥이 꺼져 있거나 잠자기 중이면 켜질 때까지 기다려요.</div></div>`;
+      <div id="pJob"></div></div>`;
   const addFiles = (e, kind) => {
     const ok = f => kind === "samsung" ? /\.xlsx$/i.test(f.name) : (/^image\//.test(f.type) || /\.(jpe?g|png|heic)$/i.test(f.name));
     [...e.target.files].filter(ok).forEach(f => P.files.push({file: f, kind, url: kind === "samsung" ? "" : URL.createObjectURL(f), state: ""}));
