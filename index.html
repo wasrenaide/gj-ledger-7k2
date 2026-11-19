@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="가계부">
 <meta name="robots" content="noindex,nofollow">
@@ -28,7 +28,7 @@
   --up:#fb923c; --down:#3fc3b4; --over:#f87171; --warn:#fbbf24; --on-warn:#1b1300; --shadow:none; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;touch-action:pan-x pan-y}   /* no pinch / double-tap zoom (scrolling stays) */
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 var(--font);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 button,input,select{font:inherit;color:inherit}
@@ -279,6 +279,11 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
   </div></nav>
 </div>
 
+<script>
+// iPhone Safari ignores user-scalable=no, so pinch zoom is also blocked here (double-tap zoom: touch-action in the CSS)
+["gesturestart", "gesturechange", "gestureend"].forEach(t => document.addEventListener(t, e => e.preventDefault()));
+document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preventDefault(); }, {passive: false});
+</script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
