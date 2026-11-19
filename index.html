@@ -42,6 +42,8 @@ button{cursor:pointer}
 .top-in{max-width:680px;margin:0 auto;display:flex;align-items:center;gap:8px}
 .brand{font-weight:700;font-size:18px;letter-spacing:-.01em;flex:1;min-width:0}
 .brand small{display:block;font-weight:400;font-size:11px;color:var(--sub);letter-spacing:0}
+.todaybtn{flex:none;border:1px solid var(--accent);background:var(--card);color:var(--accent);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700}
+.todaybtn:active{background:var(--accent-soft)}
 .mnav{display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:2px}
 .mnav button{width:32px;height:32px;border:0;border-radius:50%;background:none;color:var(--sub);font-size:18px;line-height:1}
 .mnav button:disabled{opacity:.25;cursor:default}
@@ -276,6 +278,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <div id="appView" hidden>
   <header class="top"><div class="top-in">
     <div class="brand">가계부<small id="updated"></small></div>
+    <button id="todayM" class="todaybtn" type="button" hidden>이번 달</button>
     <div class="mnav" role="group" aria-label="월 선택">
       <button id="prevM" aria-label="이전 달">‹</button>
       <div class="sel"><span id="monthLabel"></span><select id="monthSel" aria-label="월 선택"></select></div>
@@ -738,7 +741,9 @@ function paintStatus() {
 }
 
 // ---------- routing / events ----------
+const curMonth = () => { const n = new Date(), k = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`; return MONTHS.includes(k) ? k : MONTHS[MONTHS.length - 1]; };
 function renderHeader() {
+  $("todayM").hidden = state.month === curMonth();
   const real = state.month !== "전체", i = MONTHS.indexOf(state.month);
   $("monthLabel").textContent = state.month;
   $("prevM").disabled = !real || i <= 0; $("nextM").disabled = !real || i >= MONTHS.length - 1;
@@ -751,6 +756,7 @@ function show(tab, keep) {
   ["sum", "list", "unv", "gap", "trend", "photo"].forEach(t => $("v-" + t).hidden = t !== tab);
   document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   $("monthSel").parentNode.parentNode.style.visibility = (tab === "trend" || tab === "photo") ? "hidden" : "visible";
+  $("todayM").style.visibility = (tab === "trend" || tab === "photo") ? "hidden" : "visible";
   if (tab === "sum") renderSummary();
   if (tab === "list") { buildListControls(); paintList(); }
   if (tab === "unv") renderUnv();
@@ -760,6 +766,7 @@ function show(tab, keep) {
   if (!keep) window.scrollTo(0, 0);
 }
 function setMonth(m) { state.unv = false; state.month = m; store("g-month", m); state.limit = 120; renderHeader(); show(state.tab); }
+$("todayM").onclick = () => setMonth(curMonth());
 $("prevM").onclick = () => setMonth(MONTHS[MONTHS.indexOf(state.month) - 1]);
 $("nextM").onclick = () => setMonth(MONTHS[MONTHS.indexOf(state.month) + 1]);
 $("monthSel").onchange = e => setMonth(e.target.value);
