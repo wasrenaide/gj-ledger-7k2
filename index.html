@@ -138,6 +138,16 @@ button{cursor:pointer}
 .item{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--sub);padding:2px 0}
 .item span:first-child{min-width:0;overflow-wrap:anywhere}
 .warn{color:var(--warn);font-size:12px;font-weight:500}
+.stg{display:inline-block;font-size:11px;font-weight:700;padding:0 8px;line-height:19px;border-radius:999px;vertical-align:1px;margin-left:4px;white-space:nowrap}
+.stg.cf{background:var(--accent);color:var(--on-accent)}
+.stg.vf{border:1px solid var(--accent);color:var(--accent)}
+.stg.gp{background:var(--over);color:#fff}
+.stg.wt{border:1px solid var(--sub);color:var(--sub)}
+.near{font-size:12px;color:var(--sub);margin-top:4px;overflow-wrap:anywhere}
+.near b{color:var(--text);font-weight:600}
+.statcard{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.statcard div b{display:block;font-size:22px;font-weight:700;letter-spacing:-.02em}
+.statcard div span{font-size:12px;color:var(--sub)}
 .unv{display:inline-block;font-size:11px;font-weight:700;padding:0 8px;line-height:19px;border-radius:999px;background:var(--warn);color:var(--on-warn);vertical-align:1px;margin-left:4px;white-space:nowrap}
 .why{font-size:12px;color:var(--warn);margin-top:4px;overflow-wrap:anywhere}
 .row.unvrow{border-style:dashed;border-color:var(--warn)}
@@ -278,6 +288,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
       <div id="listBody"></div>
     </section>
     <section id="v-unv" hidden></section>
+    <section id="v-gap" hidden></section>
     <section id="v-trend" hidden></section>
     <section id="v-photo" hidden></section>
     <div class="foot"><button id="logout" type="button">로그아웃</button></div>
@@ -287,6 +298,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
     <button data-tab="sum" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v9h-9"/></svg>요약</button>
     <button data-tab="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>내역</button>
     <button data-tab="unv" id="unvTab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5h.01"/></svg>미검증<i class="bd" id="unvBadge" hidden></i></button>
+    <button data-tab="gap" id="gapTab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10l-3-3M17 17H7l3 3"/></svg>불일치<i class="bd" id="gapBadge" hidden></i></button>
     <button data-tab="trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>추이</button>
     <button data-tab="photo" id="photoTab" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>사진</button>
   </div></nav>
@@ -302,7 +314,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 const $ = id => document.getElementById(id);
 let ROWS = [], COLORS = {}, BUDGET = {"기본": {}, "월별": {}, "기록": [], "상태": ""}, COVER = "";
 let MONTHS = [], CATS = [];
-const state = {tab: "sum", month: null, q: "", cats: new Set(), srcs: new Set(), unv: false, ugroup: "전체", sort: "date", limit: 120, tcat: "전체", tmonth: null};
+const state = {tab: "sum", month: null, q: "", cats: new Set(), srcs: new Set(), unv: false, ugroup: "전체", gg: "mismatch", sort: "date", limit: 120, tcat: "전체", tmonth: null};
 
 // ---------- 도움말 (? 아이콘 → 팝업) ----------
 const HELP = {
@@ -310,8 +322,10 @@ const HELP = {
   receipt: {t: "영수증·주문내역 사진", b: "영수증 사진이나 캡처를 올려요.\n\n• 긴 영수증은 겹치게 여러 장으로 찍어 주세요.\n• 쿠팡은 주문내역 화면을 위에서부터 캡처하면 돼요.\n• 평평하고 밝게, 빛이 반사되지 않게 찍으면 잘 읽혀요."},
   hyundai: {t: "현대카드 명세서 (이미지)", b: "현대카드 앱의 명세서 이용내역 화면을 맨 위(명세서 날짜와 합계가 보이는 곳)부터 캡처해 올려요.\n\n• 길면 겹치게 여러 장으로 캡처해 주세요.\n• 읽은 내역의 합이 명세서 합계와 같아야만 반영돼요."},
   samsung: {t: "삼성카드 명세서 (엑셀)", b: "삼성카드에서 받은 엑셀(.xlsx) 파일을 그대로 올려요.\n\n• 파일 이름에 날짜(samsungcard_20261114 처럼)가 있으면 그 날짜로 저장돼요.\n• 시트 합계가 청구요약과 같아야만 반영돼요."},
-  read: {t: "맥에서 읽기", b: "올린 파일을 맥이 읽어요. 맥이 켜져 있어야 하고, 꺼져 있으면 켜질 때까지 기다려요.\n\n• 검산에 통과한 영수증은 그대로 등록돼요.\n• 통과하지 못해도 날짜·금액을 읽었으면 '검증 안 됨' 꼬리표와 사진 번호를 달아 등록돼요.\n• 영수증이 아니거나 금액을 못 읽은 사진은 등록되지 않고 결과에 표시돼요.\n• 카드 명세서는 합계 검산에 통과해야만 반영돼요.\n• 같은 파일이나 영수증은 '중복'으로 알려 주고, 기존 기록이 불완전하면 더 나은 정보로 업데이트해요.\n• 맥에서 오류가 나면 가계부는 바뀌지 않고 이유가 표시돼요."},
-  unv: {t: "검증 안 된 항목", b: "영수증이나 쿠팡 주문내역으로 먼저 등록하고 '검증 안 됨' 꼬리표를 단 항목이에요.\n\n• 위의 달 선택으로 달별로 볼 수 있어요.\n• 카드 명세서가 들어오면 같은 날짜·금액의 항목은 자동으로 명세서 줄로 바뀌어 여기서 사라져요."}
+  read: {t: "맥에서 읽기", b: "올린 파일을 맥이 읽어요. 맥이 켜져 있어야 하고, 꺼져 있으면 켜질 때까지 기다려요.\n\n• 검산에 통과한 영수증은 '검증완료'로 등록돼요.\n• 통과하지 못해도 날짜·금액을 읽었으면 '검증 안 됨' 꼬리표와 사진 번호를 달아 등록돼요.\n• 영수증이 아니거나 금액을 못 읽은 사진은 등록되지 않고 결과에 표시돼요.\n• 카드 명세서는 합계 검산에 통과해야만 반영돼요.\n• 같은 파일이나 영수증은 '중복'으로 알려 주고, 기존 기록이 불완전하면 더 나은 정보로 업데이트해요.\n• 맥에서 오류가 나면 가계부는 바뀌지 않고 이유가 표시돼요."},
+  gap: {t: "카드 내역과 안 맞는 항목", b: "영수증이나 쿠팡 주문내역으로 등록한 항목 중, 카드 명세서에 같은 날짜·금액의 줄이 없는 항목이에요.\n\n• 카드 내역과 불일치: 그 날짜가 이미 올린 명세서 범위 안인데 맞는 줄이 없어요. 금액을 잘못 읽었거나 다른 카드로 결제했을 수 있어요. 가장 비슷한 카드 내역을 같이 보여줘요.\n• 명세서 대기: 아직 명세서가 올라오지 않은 기간이라 맞춰 볼 수 없어요. 명세서를 올리면 자동으로 맞춰져요."},
+  status: {t: "상태 구분", b: "• 확정완료: 카드 내역(명세서)과 날짜·금액을 맞춘 항목이에요.\n• 검증완료: 영수증 자체로만 확인한 항목이에요(합계 검산이나 승인번호). 아직 카드 내역과 맞춰 보지 않았어요.\n• 검증 안 됨: 영수증 자체로도 다 확인하지 못해 꼬리표를 달아 등록한 항목이에요.\n\n카드 명세서 줄 자체는 카드사 기록이라 따로 표시하지 않아요."},
+  unv: {t: "검증 안 된 항목", b: "영수증이나 쿠팡 주문내역으로 먼저 등록하고 '검증 안 됨' 꼬리표를 단 항목이에요.\n\n• 위의 달 선택으로 달별로 볼 수 있어요.\n• 카드 명세서가 들어오면 같은 날짜·금액의 항목은 자동으로 명세서 줄(확정완료)로 바뀌어 여기서 사라져요."}
 };
 const Q = k => `<button class="help" type="button" data-help="${k}" aria-label="설명 보기">?</button>`;
 function openHelp(k) { const h = HELP[k]; if (!h) return; $("helpT").textContent = h.t; $("helpB").textContent = h.b; $("helpBack").hidden = false; $("helpX").focus(); }
@@ -381,6 +395,10 @@ function renderSummary() {
     <div class="big num">${Math.round(total).toLocaleString("ko-KR")}<span>원</span></div>${deltaHtml}${meter}</div>`;
   const unvRows = rows.filter(r => r.ok === false);
   if (unvRows.length) html += `<button class="unvbar" data-unv="1" type="button"><span><b>검증 안 된 항목 ${unvRows.length}건</b> · ${won(sum(unvRows.map(r => r.amount)))}<br><span class="sub">꼬리표를 달아 등록했어요. 눌러서 확인하세요.</span></span><span>›</span></button>`;
+  const gapRows = rows.filter(r => r.gap === "mismatch");
+  if (gapRows.length) html += `<button class="unvbar" data-gap="1" type="button" style="border-color:var(--over);background:color-mix(in srgb,var(--over) 10%,var(--card))"><span><b style="color:var(--over)">카드 내역과 안 맞는 항목 ${gapRows.length}건</b> · ${won(sum(gapRows.map(r => r.amount)))}<br><span class="sub">명세서 범위 안인데 맞는 줄이 없어요. 눌러서 확인하세요.</span></span><span>›</span></button>`;
+  const rc = rows.filter(r => r.st), cnt = k => rc.filter(r => r.st === k).length;
+  if (rc.length) html += `<div class="card"><h2><span>영수증·주문내역 현황 ${Q("status")}</span><em class="num">${rc.length}건</em></h2><div class="statcard"><div><b class="num" style="color:var(--accent)">${cnt("confirmed")}</b><span>확정완료</span></div><div><b class="num">${cnt("verified")}</b><span>검증완료</span></div><div><b class="num" style="color:var(--warn)">${cnt("unverified")}</b><span>검증 안 됨</span></div></div></div>`;
   // donut + categories
   const list = Object.entries(by).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   const pos = sum(list.map(x => x[1])) || 1;
@@ -418,11 +436,14 @@ function buildListControls() {
   $("srcChips").innerHTML = (nu ? `<button class="chip sm unvchip ${state.unv ? "on" : ""}" data-u="1">검증 안 됨만 ${nu}</button>` : "") +
     (srcs.length > 1 ? srcs.map(s => `<button class="chip sm ${state.srcs.has(s) ? "on" : ""}" data-s="${esc(s)}">${esc(s)}</button>`).join("") : "");
 }
-function rowHtml(r, a, showDate) {
+const stTag = r => r.st === "confirmed" ? '<span class="stg cf">확정완료</span>' : r.st === "verified" ? '<span class="stg vf">검증완료</span>'
+  : (r.st === "unverified" || r.ok === false) ? '<span class="unv">검증 안 됨</span>' : "";
+const gapTag = r => r.gap === "mismatch" ? '<span class="stg gp">카드 내역과 불일치</span>' : r.gap === "waiting" ? '<span class="stg wt">명세서 대기</span>' : "";
+function rowHtml(r, a, showDate, opt) {
     const has = r.items.length > 0 && !r.flat, rs = catSums([r]), keys = Object.keys(rs).sort((a, b) => rs[b] - rs[a]);
   return `<div class="row ${has ? "click" : ""} ${r.ok === false ? "unvrow" : ""}" style="--rc:${color(keys[0])}"><div class="top2"><div class="nm-wrap" style="min-width:0">
-    <div class="nm">${esc(r.store)}${r.ok === false ? '<span class="unv">검증 안 됨</span>' : ""}</div>
-    <div class="meta">${keys.map(k => `<span class="tag"><span class="dot" style="background:${color(k)};width:7px;height:7px"></span>${esc(k)}${keys.length > 1 ? " " + rs[k].toLocaleString("ko-KR") : ""}</span>`).join("")}${r.photo ? `<span class="tag">사진 ${esc(r.photo)}</span>` : ""}${r.approval ? `<span class="tag">승인 ${esc(r.approval)}</span>` : ""}<span>${esc(r.card || (r.src === "영수증" ? "카드사 미확인" : r.src))}${showDate ? " · " + r.date.slice(2).replace(/-/g, ".") : ""}</span></div>${r.ok === false && r.why ? `<div class="why">${esc(r.why)}</div>` : ""}</div>
+    <div class="nm">${esc(r.store)}${stTag(r)}${opt && opt.gap ? gapTag(r) : ""}</div>
+    <div class="meta">${keys.map(k => `<span class="tag"><span class="dot" style="background:${color(k)};width:7px;height:7px"></span>${esc(k)}${keys.length > 1 ? " " + rs[k].toLocaleString("ko-KR") : ""}</span>`).join("")}${r.photo ? `<span class="tag">사진 ${esc(r.photo)}</span>` : ""}${r.approval ? `<span class="tag">승인 ${esc(r.approval)}</span>` : ""}<span>${esc(r.card || (r.src === "영수증" ? "카드사 미확인" : r.src))}${showDate ? " · " + r.date.slice(2).replace(/-/g, ".") : ""}</span></div>${r.ok === false && r.why ? `<div class="why">${esc(r.why)}</div>` : ""}${opt && opt.gap && r.near ? `<div class="near">비슷한 카드 내역: <b>${esc(r.near)}</b></div>` : ""}</div>
     <div class="am num ${a < 0 ? "neg" : ""}">${won(a)}</div></div>
     ${has ? `<div class="items">${r.items.map(i => `<div class="item"><span><span class="dot" style="background:${color(i.category)};width:7px;height:7px;margin-right:6px"></span>${esc(i.name)}</span><span class="num">${won(i.amount)}</span></div>`).join("")}</div>` : ""}</div>`;
 }
@@ -474,6 +495,25 @@ function renderUnv() {
 }
 $("v-unv").onclick = e => { if (e.target.closest("[data-allm]")) { setMonth("전체"); return; }
   const g = e.target.closest("[data-ug]"); if (g) { state.ugroup = g.dataset.ug; renderUnv(); return; }
+  const r = e.target.closest(".row.click"); if (r) r.classList.toggle("open"); };
+
+// ---------- 불일치: 카드 내역과 안 맞는 항목 ----------
+const gapRowsAll = () => ROWS.filter(r => r.gap);
+function updateGapBadge() { const n = ROWS.filter(r => r.gap === "mismatch").length; $("gapBadge").hidden = !n; $("gapBadge").textContent = n > 99 ? "99+" : n; }
+function renderGap() {
+  const m = state.month, all = gapRowsAll().filter(r => m === "전체" || r.date.startsWith(m));
+  const nm = all.filter(r => r.gap === "mismatch").length, nw = all.length - nm, totalMm = ROWS.filter(r => r.gap === "mismatch").length;
+  const rows = all.filter(r => state.gg === "전체" || r.gap === state.gg).sort((a, b) => b.date.localeCompare(a.date));
+  let html = `<div class="card"><h2><span>카드 내역과 안 맞는 항목 ${Q("gap")}</span><em class="num">${m === "전체" ? "전체 기간" : m}</em></h2>
+    <div class="num"><span style="font-size:28px;font-weight:700;letter-spacing:-.02em">${rows.length}건</span> <span class="sub">· ${won(sum(rows.map(r => r.amount)))}</span></div>
+    <div class="chips" style="margin-top:10px"><button class="chip ${state.gg === "mismatch" ? "on" : ""}" data-gg="mismatch">카드 내역과 불일치 ${nm}</button><button class="chip ${state.gg === "waiting" ? "on" : ""}" data-gg="waiting">명세서 대기 ${nw}</button><button class="chip ${state.gg === "전체" ? "on" : ""}" data-gg="전체">전체 ${all.length}</button></div></div>`;
+  if (!rows.length) html += `<div class="empty">${state.gg === "mismatch" ? (m === "전체" ? "카드 내역과 안 맞는 항목이 없어요." : m + "에는 카드 내역과 안 맞는 항목이 없어요.") : "해당하는 항목이 없어요."}${state.gg === "mismatch" && nw ? `<br><button class="btn" data-gg="waiting" type="button" style="margin-top:12px">명세서 대기 ${nw}건 보기</button>` : ""}</div>`;
+  else if (m !== "전체" && state.gg === "mismatch" && totalMm > nm) html += `<button class="more" data-allgap="1" type="button">다른 달 ${totalMm - nm}건 더 있어요 · 전체 기간 보기</button>`;
+  rows.forEach(r => { html += rowHtml(r, r.amount, true, {gap: true}); });
+  $("v-gap").innerHTML = html;
+}
+$("v-gap").onclick = e => { if (e.target.closest("[data-allgap]")) { setMonth("전체"); return; }
+  const g = e.target.closest("[data-gg]"); if (g) { state.gg = g.dataset.gg; renderGap(); return; }
   const r = e.target.closest(".row.click"); if (r) r.classList.toggle("open"); };
 
 // ---------- 추이 ----------
@@ -658,18 +698,19 @@ function renderHeader() {
   const real = state.month !== "전체", i = MONTHS.indexOf(state.month);
   $("monthLabel").textContent = state.month;
   $("prevM").disabled = !real || i <= 0; $("nextM").disabled = !real || i >= MONTHS.length - 1;
-  const un = m => unvRows().filter(r => m === "전체" || r.date.startsWith(m)).length;
-  $("monthSel").innerHTML = ["전체", ...MONTHS.slice().reverse()].map(m => `<option value="${m}" ${m === state.month ? "selected" : ""}>${m}${un(m) ? " · 미검증 " + un(m) : ""}</option>`).join("");
+  const un = m => unvRows().filter(r => m === "전체" || r.date.startsWith(m)).length, gm = m => ROWS.filter(r => r.gap === "mismatch" && (m === "전체" || r.date.startsWith(m))).length;
+  $("monthSel").innerHTML = ["전체", ...MONTHS.slice().reverse()].map(m => `<option value="${m}" ${m === state.month ? "selected" : ""}>${m}${un(m) ? " · 미검증 " + un(m) : ""}${gm(m) ? " · 불일치 " + gm(m) : ""}</option>`).join("");
   $("monthSel").value = state.month;
 }
 function show(tab) {
   state.tab = tab; store("g-tab", tab);
-  ["sum", "list", "unv", "trend", "photo"].forEach(t => $("v-" + t).hidden = t !== tab);
+  ["sum", "list", "unv", "gap", "trend", "photo"].forEach(t => $("v-" + t).hidden = t !== tab);
   document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   $("monthSel").parentNode.parentNode.style.visibility = (tab === "trend" || tab === "photo") ? "hidden" : "visible";
   if (tab === "sum") renderSummary();
   if (tab === "list") { buildListControls(); paintList(); }
   if (tab === "unv") renderUnv();
+  if (tab === "gap") renderGap();
   if (tab === "trend") renderTrend();
   if (tab === "photo") openPhoto(); else stopPoll();
   window.scrollTo(0, 0);
@@ -680,8 +721,9 @@ $("nextM").onclick = () => setMonth(MONTHS[MONTHS.indexOf(state.month) + 1]);
 $("monthSel").onchange = e => setMonth(e.target.value);
 document.querySelector(".tabbar").onclick = e => { const b = e.target.closest("button"); if (b) show(b.dataset.tab); };
 $("v-sum").onclick = e => {
-  const c = e.target.closest(".cat"), s = e.target.closest(".store"), u = e.target.closest(".unvbar");
+  const c = e.target.closest(".cat"), s = e.target.closest(".store"), u = e.target.closest(".unvbar:not([data-gap])");
   if (u) show("unv");
+  else if (e.target.closest(".unvbar[data-gap]")) show("gap");
   else if (c) { state.cats = new Set([c.dataset.cat]); state.srcs = new Set(); state.q = ""; $("q").value = ""; show("list"); }
   else if (s) { state.q = s.dataset.q; state.cats = new Set(); state.srcs = new Set(); $("q").value = state.q; show("list"); }
 };
@@ -725,10 +767,10 @@ function applyData(r) {
   if (!state.month) state.month = (sm && (sm === "전체" || MONTHS.includes(sm))) ? sm : MONTHS[MONTHS.length - 1];
   CAN_UP = !!r.can_upload;
   $("photoTab").hidden = !CAN_UP;
-  if (st && ["sum", "list", "unv", "trend"].concat(CAN_UP ? ["photo"] : []).includes(st) && !renderTrend.started) state.tab = st;
+  if (st && ["sum", "list", "unv", "gap", "trend"].concat(CAN_UP ? ["photo"] : []).includes(st) && !renderTrend.started) state.tab = st;
   if (state.tab === "photo" && !CAN_UP) state.tab = "sum";
   renderTrend.started = true;
-  updateUnvBadge();
+  updateUnvBadge(); updateGapBadge();
   view("app"); renderHeader(); show(state.tab);
 }
 async function load(name, pin, fromForm) {
