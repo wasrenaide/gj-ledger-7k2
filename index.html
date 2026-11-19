@@ -415,26 +415,29 @@ const whyGroup = r => { const w = r.why || ""; return /카드 내역 확인 전/
 function unvRows() { return ROWS.filter(r => r.ok === false); }
 function updateUnvBadge() { const n = unvRows().length; $("unvBadge").hidden = !n; $("unvBadge").textContent = n > 99 ? "99+" : n; }
 function renderUnv() {
-  const all = unvRows(), groups = {};
+  const m = state.month, total = unvRows().length;
+  const all = unvRows().filter(r => m === "전체" || r.date.startsWith(m)), groups = {};
   all.forEach(r => { const g = whyGroup(r); groups[g] = (groups[g] || 0) + 1; });
   if (state.ugroup !== "전체" && !groups[state.ugroup]) state.ugroup = "전체";
   const rows = all.filter(r => state.ugroup === "전체" || whyGroup(r) === state.ugroup).sort((a, b) => b.date.localeCompare(a.date));
-  let html = `<div class="card"><h2>검증 안 된 항목<em class="num">전체 기간</em></h2>
+  let html = `<div class="card"><h2>검증 안 된 항목<em class="num">${m === "전체" ? "전체 기간" : m}</em></h2>
     <div class="num"><span style="font-size:28px;font-weight:700;letter-spacing:-.02em">${rows.length}건</span> <span class="sub">· ${won(sum(rows.map(r => r.amount)))}</span></div>
-    <div class="sub" style="margin-top:6px">영수증이나 주문내역으로 먼저 등록하고 꼬리표를 단 항목이에요. 카드 명세서가 들어오면 같은 날짜·금액의 항목은 자동으로 명세서 줄로 바뀌어 여기서 사라져요.</div>
+    <div class="sub" style="margin-top:6px">위 달 선택으로 달별로 볼 수 있어요. 영수증이나 주문내역으로 먼저 등록하고 꼬리표를 단 항목이에요. 카드 명세서가 들어오면 같은 날짜·금액의 항목은 자동으로 명세서 줄로 바뀌어 여기서 사라져요.</div>
     ${all.length ? `<div class="chips" style="margin-top:10px"><button class="chip ${state.ugroup === "전체" ? "on" : ""}" data-ug="전체">전체 ${all.length}</button>${Object.entries(groups).map(([g, n]) =>
       `<button class="chip ${state.ugroup === g ? "on" : ""}" data-ug="${esc(g)}">${esc(g)} ${n}</button>`).join("")}</div>` : ""}</div>`;
-  if (!all.length) html += '<div class="empty">검증 안 된 항목이 없어요.<br>모든 항목이 확인됐어요.</div>';
+  if (!all.length) html += `<div class="empty">${m === "전체" ? "검증 안 된 항목이 없어요.<br>모든 항목이 확인됐어요." : m + "에는 검증 안 된 항목이 없어요."}${total ? `<br><button class="btn" data-allm="1" type="button" style="margin-top:12px">다른 달 포함 ${total}건 보기</button>` : ""}</div>`;
+  else if (m !== "전체" && total > all.length) html += `<button class="more" data-allm="1" type="button">다른 달 ${total - all.length}건 더 있어요 · 전체 기간 보기</button>`;
   let lastM = "";
   const mTot = {}; rows.forEach(r => mTot[r.date.slice(0, 7)] = (mTot[r.date.slice(0, 7)] || 0) + r.amount);
   rows.forEach(r => {
-    const m = r.date.slice(0, 7);
-    if (m !== lastM) { lastM = m; html += `<div class="msum num"><span>${m}</span><span>${rows.filter(x => x.date.startsWith(m)).length}건 · ${won(mTot[m])}</span></div>`; }
+    const mm = r.date.slice(0, 7);
+    if (m === "전체" && mm !== lastM) { lastM = mm; html += `<div class="msum num"><span>${mm}</span><span>${rows.filter(x => x.date.startsWith(mm)).length}건 · ${won(mTot[mm])}</span></div>`; }
     html += rowHtml(r, r.amount, true);
   });
   $("v-unv").innerHTML = html;
 }
-$("v-unv").onclick = e => { const g = e.target.closest("[data-ug]"); if (g) { state.ugroup = g.dataset.ug; renderUnv(); return; }
+$("v-unv").onclick = e => { if (e.target.closest("[data-allm]")) { setMonth("전체"); return; }
+  const g = e.target.closest("[data-ug]"); if (g) { state.ugroup = g.dataset.ug; renderUnv(); return; }
   const r = e.target.closest(".row.click"); if (r) r.classList.toggle("open"); };
 
 // ---------- 추이 ----------
@@ -598,14 +601,15 @@ function renderHeader() {
   const real = state.month !== "전체", i = MONTHS.indexOf(state.month);
   $("monthLabel").textContent = state.month;
   $("prevM").disabled = !real || i <= 0; $("nextM").disabled = !real || i >= MONTHS.length - 1;
-  $("monthSel").innerHTML = ["전체", ...MONTHS.slice().reverse()].map(m => `<option ${m === state.month ? "selected" : ""}>${m}</option>`).join("");
+  const un = m => unvRows().filter(r => m === "전체" || r.date.startsWith(m)).length;
+  $("monthSel").innerHTML = ["전체", ...MONTHS.slice().reverse()].map(m => `<option value="${m}" ${m === state.month ? "selected" : ""}>${m}${un(m) ? " · 미검증 " + un(m) : ""}</option>`).join("");
   $("monthSel").value = state.month;
 }
 function show(tab) {
   state.tab = tab; store("g-tab", tab);
   ["sum", "list", "unv", "trend", "photo"].forEach(t => $("v-" + t).hidden = t !== tab);
   document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-  $("monthSel").parentNode.parentNode.style.visibility = (tab === "trend" || tab === "photo" || tab === "unv") ? "hidden" : "visible";
+  $("monthSel").parentNode.parentNode.style.visibility = (tab === "trend" || tab === "photo") ? "hidden" : "visible";
   if (tab === "sum") renderSummary();
   if (tab === "list") { buildListControls(); paintList(); }
   if (tab === "unv") renderUnv();
