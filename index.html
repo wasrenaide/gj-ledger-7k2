@@ -190,6 +190,10 @@ button{cursor:pointer}
 body:has(#budBack:not([hidden])),body:has(#catBack:not([hidden])),body:has(#treeBack:not([hidden])),body:has(#setBack:not([hidden])){overflow:hidden}
 #budBack,#treeBack{position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
 #treeBack[hidden],#budBack[hidden]{display:none}
+.vd-row{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;padding:11px 2px;border-bottom:1px solid var(--line);color:var(--text);font-size:15px}
+.vd-row .nm{flex:1;min-width:0;overflow-wrap:anywhere}.vd-row .nm small{display:block;color:var(--sub);font-size:11px;margin-top:2px}
+.vd-row .am{font-weight:600}.vd-row .ar{color:var(--sub)}
+.vd-bar{height:5px;border-radius:3px;background:var(--soft);margin-top:5px;overflow:hidden}.vd-bar i{display:block;height:100%;border-radius:3px}
 .bd-row{display:grid;grid-template-columns:1fr 96px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
 .bd-row small{display:block;color:var(--sub);font-size:11px}
 .bd-row input{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:7px 9px;font-size:16px;width:100%;text-align:right}
@@ -404,6 +408,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
     </section>
     <section id="v-unv" hidden></section>
     <section id="v-trend" hidden></section>
+    <section id="v-vendor" hidden></section>
     <section id="v-photo" hidden></section>
     <div class="foot"><button id="logout" type="button">로그아웃</button></div>
   </main>
@@ -413,6 +418,7 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
     <button data-tab="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>내역</button>
     <button data-tab="unv" id="unvTab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5h.01"/></svg>확인<i class="bd" id="unvBadge" hidden></i></button>
     <button data-tab="trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>추이</button>
+    <button data-tab="vendor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M10 20v-6h4v6"/></svg>구입처</button>
     <button data-tab="photo" id="photoTab" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>사진</button>
   </div></nav>
 </div>
@@ -651,6 +657,37 @@ document.addEventListener("click", async e => {
     else { toast(r.error === "not_allowed" ? "바꿀 권한이 없어요" : "저장하지 못했어요"); return; }
     BD = null; $("budBack").hidden = true; show(state.tab, true);
   }
+});
+// ---------- 구입처 탭: 어디서 썼나 (구입처 종류 › 가게 › 내역). 모르는 가게는 기타 ----------
+const normStore = n => (n || "").replace(/\s*\((취소)\)\s*$/, "").replace(/[_ ]?\d{1,2}월.*$/, "").replace(/\s*\d{4}건.*$/, "").replace(/\s+/g, " ").trim() || n;
+const vtOf = r => r.vt || "기타";
+function renderVendor() {
+  const m = state.month, rows = statRows(monthRows(m)), vk = state.vk, vs = state.vs;
+  const group = (list, key) => { const g = {}; list.forEach(r => { const k = key(r); g[k] = g[k] || {n: 0, sum: 0}; g[k].n++; g[k].sum += r.amount; });
+    return Object.entries(g).sort((a, b) => (a[0] === "기타") - (b[0] === "기타") || b[1].sum - a[1].sum); };
+  const bar = (v, tot, c) => `<div class="vd-bar"><i style="width:${tot > 0 ? Math.max(2, Math.round(100 * v / tot)) : 0}%;background:${c}"></i></div>`;
+  const crumb = `<div class="steps"><button class="step ${vk ? "done" : "cur"}" type="button" ${vk ? 'data-vup="0"' : "disabled"}><small>구입처 종류</small>${vk ? esc(vk) : "고르기"}</button><span class="arr">›</span><button class="step ${vs ? "done" : vk ? "cur" : ""}" type="button" ${vs ? 'data-vup="1"' : "disabled"}><small>가게</small>${vs ? esc(vs) : vk ? "고르기" : "–"}</button></div>`;
+  const tot = sum(rows.map(r => r.amount)); let html = "";
+  if (!vk) {
+    const g = group(rows, vtOf);
+    html = `<div class="card"><h2><span>구입처별 지출</span><em class="num">${m === "전체" ? "전체 기간" : m}</em></h2><div class="num" style="font-size:28px;font-weight:700;letter-spacing:-.02em">${won(tot)}</div>
+      <p class="cat-modal-note" style="margin-top:6px">어떤 가게에서 썼는지로 묶어요. 가게를 알아볼 수 없으면 '기타'예요. (무엇을 샀는지는 요약 탭의 카테고리에서 봐요)</p>${crumb}` +
+      g.map(([k, o]) => `<button class="vd-row" type="button" data-vk="${esc(k)}"><span class="nm">${esc(k)}<small>${o.n}건 · ${tot > 0 ? Math.round(100 * o.sum / tot) : 0}%</small>${bar(o.sum, tot, k === "기타" ? "#8a8f98" : hashColor(k))}</span><span class="am num">${won(o.sum)}</span><span class="ar">›</span></button>`).join("") + `</div>`;
+  } else if (!vs) {
+    const list = rows.filter(r => vtOf(r) === vk), t2 = sum(list.map(r => r.amount)), g = group(list, r => normStore(r.store));
+    html = `<div class="card"><h2><span>${esc(vk)}</span><em class="num">${won(t2)}</em></h2>${crumb}` +
+      g.map(([k, o]) => `<button class="vd-row" type="button" data-vs="${esc(k)}"><span class="nm">${esc(k)}<small>${o.n}건</small>${bar(o.sum, t2, hashColor(vk))}</span><span class="am num">${won(o.sum)}</span><span class="ar">›</span></button>`).join("") + `</div>`;
+  } else {
+    const list = rows.filter(r => vtOf(r) === vk && normStore(r.store) === vs).sort((a, b) => b.date.localeCompare(a.date));
+    html = `<div class="card"><h2><span>${esc(vs)}</span><em class="num">${list.length}건 · ${won(sum(list.map(r => r.amount)))}</em></h2>${crumb}</div>` + list.map(r => rowHtml(r, r.amount, true, {})).join("");
+  }
+  if (!rows.length) html = `<div class="empty">${m === "전체" ? "" : m + "에는 "}내역이 없어요.</div>`;
+  $("v-vendor").innerHTML = html;
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-vk]"); if (a) { state.vk = a.dataset.vk; state.vs = null; renderVendor(); window.scrollTo(0, 0); return; }
+  const b = e.target.closest("[data-vs]"); if (b) { state.vs = b.dataset.vs; renderVendor(); window.scrollTo(0, 0); return; }
+  const u = e.target.closest("[data-vup]"); if (u) { if (u.dataset.vup === "0") state.vk = null; state.vs = null; renderVendor(); }
 });
 function renderTree() {   // read-only overview: 대분류 › 중분류 › 소분류 (what is in the data right now)
   const items = ROWS.flatMap(r => r.items), by = {};
@@ -1100,7 +1137,8 @@ function renderHeader() {
 }
 function show(tab, keep) {
   state.tab = tab; store("g-tab", tab);
-  ["sum", "list", "unv", "trend", "photo"].forEach(t => $("v-" + t).hidden = t !== tab);
+  ["sum", "list", "unv", "trend", "vendor", "photo"].forEach(t => $("v-" + t).hidden = t !== tab);
+  $("gearTop").style.visibility = tab === "vendor" ? "hidden" : "visible";
   document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   $("monthSel").parentNode.parentNode.style.visibility = (tab === "trend" || tab === "photo") ? "hidden" : "visible";
   $("todayM").style.visibility = (tab === "trend" || tab === "photo") ? "hidden" : "visible";
@@ -1108,6 +1146,7 @@ function show(tab, keep) {
   if (tab === "list") { buildListControls(); paintList(); }
   if (tab === "unv") renderChk();
   if (tab === "trend") renderTrend();
+  if (tab === "vendor") renderVendor();
   if (tab === "photo") openPhoto(); else stopPoll();
   if (!keep) window.scrollTo(0, 0);
 }
@@ -1293,7 +1332,7 @@ function applyData(r) {
   IGN = new Map((r.ignored || []).map(x => [x.key, x.label]));
   $("photoTab").hidden = !CAN_UP;
   if (st === "gap") st = "unv";
-  if (st && ["sum", "list", "unv", "trend"].concat(CAN_UP ? ["photo"] : []).includes(st) && !renderTrend.started) state.tab = st;
+  if (st && ["sum", "list", "unv", "trend", "vendor"].concat(CAN_UP ? ["photo"] : []).includes(st) && !renderTrend.started) state.tab = st;
   if (state.tab === "photo" && !CAN_UP) state.tab = "sum";
   renderTrend.started = true;
   updateUnvBadge(); updateGapBadge();
