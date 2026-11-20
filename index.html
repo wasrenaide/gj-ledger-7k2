@@ -492,7 +492,9 @@ let PR = null;                                              // per-phone choices
 const pref = k => { if (!PR) PR = {...PDEF, ...(fetchStore("g-prefs") || {})}; return PR[k] === undefined ? PDEF[k] : PR[k]; };
 const setPref = (k, v) => { pref(k); PR[k] = v; store("g-prefs", PR); };
 let SPREFS = {}, XS_DEFAULT = [];                           // shared choices (server) and the starting rules
-const xsRules = () => (SPREFS.stat && Array.isArray(SPREFS.stat.rules)) ? SPREFS.stat.rules : (fetchStore("g-xsrules") || XS_DEFAULT);
+let CFG_ALIAS = {}, CFG_VER = 1;                            // old 중분류 name -> new name (카테고리 재정비), tree version
+const al = c => CFG_ALIAS[c] || c;
+const xsRules = () => ((SPREFS.stat && Array.isArray(SPREFS.stat.rules)) ? SPREFS.stat.rules : (fetchStore("g-xsrules") || XS_DEFAULT)).map(r => ({...r, cat: al(r.cat)}));
 const xsMatch = (r, rules) => { for (const ru of rules) { if (ru.on === false || !(ru.min > 0)) continue;
   if (r.amount >= ru.min && r.items.some(i => i.category === ru.cat) && (!(ru.kw && ru.kw.length) || ru.kw.some(k => r.store.includes(k)))) return ru.name || `${ru.cat} ${Math.round(ru.min / 10000)}만원 이상`; } return ""; };
 const xsOf = r => (r._x !== undefined ? r._x : (r._x = xsMatch(r, xsRules())));
@@ -500,7 +502,11 @@ const clearXs = () => ROWS.forEach(r => { delete r._x; });
 
 // ---------- 카테고리 편집 (규칙 · 대분류 묶음, 모두에게 적용) ----------
 let CFG_TREE = {}, CFG_COLORS1 = {}, CAT_DRAFT = null, CE = null, ceTab = "tidy", ceOpen = null;
-const catUser = () => CAT_DRAFT || ((SPREFS.cat && Object.keys(SPREFS.cat).length) ? SPREFS.cat : (fetchStore("g-cat") || {}));
+const catUser = () => { if (CAT_DRAFT) return CAT_DRAFT;
+  const U = (SPREFS.cat && Object.keys(SPREFS.cat).length) ? SPREFS.cat : (fetchStore("g-cat") || {});
+  const out = {...U, rules: (U.rules || []).map(r => ({...r, cat: al(r.cat)}))};
+  if ((U.ver || 1) !== CFG_VER) { delete out.tree; delete out.colors1; }   // saved before the 재정비: use the new structure
+  return out; };
 function applyCats() {   // base categories from the data + the user's rules on top; also rebuilds the 대분류 tree
   const U = catUser();
   TREE = U.tree && Object.keys(U.tree).length ? U.tree : CFG_TREE; COLORS1 = {...CFG_COLORS1, ...(U.colors1 || {})}; MID2L1 = {};
@@ -563,7 +569,7 @@ function renderCatEditor() {
   const keep = $("catBody").scrollTop; $("catBody").innerHTML = h; $("catBody").scrollTop = keep;
 }
 async function saveCat() {
-  const payload = {tree: CE.tree, colors1: CE.colors1, rules: CE.rules.filter(r => r.kw && r.cat)};
+  const payload = {ver: CFG_VER, tree: CE.tree, colors1: CE.colors1, rules: CE.rules.filter(r => r.kw && r.cat)};
   const c = fetchStore("gagyebu-login-v1"); const r = c ? await rpc("g_pref_set", {p_name: c.name, p_pin: c.pin, p_key: "cat", p_value: payload}) : {ok: false, error: "bad_login"};
   if (r.ok) { SPREFS.cat = payload; store("g-cat", undefined); toast("저장했어요 · 모두에게 적용돼요"); }
   else if (r.code === "PGRST202") { store("g-cat", payload); SPREFS.cat = {}; toast("서버에는 아직 저장 못 했어요 (서버 설정 prefs.sql 필요). 이 폰에는 적용했고, 서버 설정 후 앱을 열면 자동으로 올라가요", 6000); }
@@ -722,7 +728,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", 
 const sum = a => a.reduce((x, y) => x + y, 0);
 const monthRows = m => m === "전체" ? ROWS : ROWS.filter(r => r.date.startsWith(m));
 const catSums = rows => { const o = {}; rows.forEach(r => r.items.forEach(i => o[i.category] = (o[i.category] || 0) + i.amount)); return o; };
-const manBud = () => (SPREFS.budget && (SPREFS.budget["기본"] || SPREFS.budget["월별"])) ? SPREFS.budget : (fetchStore("g-budget") || {});
+const manBud = () => { const u = (SPREFS.budget && (SPREFS.budget["기본"] || SPREFS.budget["월별"])) ? SPREFS.budget : (fetchStore("g-budget") || {});
+  const mp = o => { const r = {}; Object.entries(o || {}).forEach(([k, v]) => { r[al(k)] = (r[al(k)] || 0) + v; }); return r; };
+  return {"기본": mp(u["기본"]), "월별": Object.fromEntries(Object.entries(u["월별"] || {}).map(([m, o]) => [m, mp(o)]))}; };
 const autoBudget = (m, c) => (BUDGET["월별"][m] || {})[c] ?? BUDGET["기본"][c] ?? 0;
 const getBudget = (m, c) => { const u = manBud(); return ((u["월별"] || {})[m] || {})[c] ?? (u["기본"] || {})[c] ?? autoBudget(m, c); };
 const store = (k, v) => { try { v === undefined ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
@@ -1270,6 +1278,7 @@ function applyData(r) {
   COLORS = (r.config && r.config.colors) || {};
   SPREFS = r.prefs || {}; XS_DEFAULT = (r.config && r.config.xs_default) || [];
   if (!applyData.once) { applyData.once = true; state.sort = pref("l_sort"); state.limit = +pref("l_limit"); }
+  CFG_ALIAS = (r.config && r.config.alias) || {}; CFG_VER = (r.config && r.config.tree_ver) || 1;
   CFG_TREE = (r.config && r.config.tree) || {}; CFG_COLORS1 = (r.config && r.config.colors1) || {};
   BUDGET = (r.config && r.config.budget) || BUDGET;
   COVER = (r.config && r.config.cover) || "";
