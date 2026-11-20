@@ -179,6 +179,26 @@ button{cursor:pointer}
 .xrule .del{border:0;background:none;color:var(--over);font-size:13px}
 .xprev{font-size:13px;color:var(--sub);margin:6px 0}
 @media (prefers-reduced-motion:reduce){.sw i,.sw i::after{transition:none}}
+.cat-modal-note{font-size:12px;color:var(--sub);margin:0 0 10px}
+#catBack{position:fixed;inset:0;z-index:68;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+#catBox{background:var(--card);color:var(--text);width:100%;max-width:620px;height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.ce-tabs{display:flex;gap:6px;margin:0 0 12px;position:sticky;top:34px;background:var(--card);padding:4px 0 8px;z-index:1}
+.ce-tabs button{flex:1;border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:999px;padding:7px 4px;font-size:13px;font-weight:600}
+.ce-tabs button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.ce-card{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;display:grid;gap:8px}
+.ce-card .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ce-card .nm{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.ce-card .sub{font-size:12px;color:var(--sub)}
+.ce-card select,.ce-card input[type=text]{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:7px 9px;font-size:16px;min-width:0;width:100%}
+.ce-card .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ce-card label>span{display:block;font-size:11px;color:var(--sub);margin-bottom:3px}
+.ce-card .mini{border:0;background:none;color:var(--over);font-size:13px}
+.ce-card input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-radius:8px;padding:0;background:var(--card)}
+.ce-mid{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border-top:1px dashed var(--line);padding-top:8px}
+.ce-add{display:flex;gap:8px}
+.ce-add input{flex:1}
+.ce-foot{position:sticky;bottom:-18px;background:var(--card);padding:10px 0 4px;display:flex;gap:8px;border-top:1px solid var(--line);margin-top:12px}
+.ce-foot .btn{flex:1}
 .trpick{display:flex;align-items:center;gap:8px;margin-top:4px}
 .trpick select{flex:1;min-width:0;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 10px;font-size:16px}
 .steps{display:flex;align-items:stretch;gap:4px;margin:2px 0 12px}
@@ -323,6 +343,8 @@ main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 
 <div id="setBack" hidden><div id="setBox" role="dialog" aria-modal="true" aria-labelledby="setT"><div class="set-hd"><b id="setT"></b><button id="setX" type="button">닫기</button></div><div id="setBody"></div></div></div>
 
+<div id="catBack" hidden><div id="catBox" role="dialog" aria-modal="true" aria-labelledby="catT"><div class="set-hd"><b id="catT">카테고리 편집</b><button id="catX" type="button">닫기</button></div><div id="catBody"></div></div></div>
+
 <div id="toast" role="status" hidden></div>
 
 <div id="loadView" class="empty" hidden>불러오는 중…</div>
@@ -412,7 +434,7 @@ const ignKeys = r => [...(r.ok === false ? [igKey("unv", r)] : []), ...(r.gap ? 
 const dismissed = r => { const k = ignKeys(r); return k.length > 0 && k.every(x => IGN.has(x)); };
 const EYE = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1A9.6 9.6 0 0 1 12 6c5 0 8.5 4 9.5 6a12 12 0 0 1-2.6 3.3M6.6 7.6A12 12 0 0 0 2.5 12c1 2 4.5 6 9.5 6 1.5 0 2.8-.4 4-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
 let toastTimer = null;
-function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2600); }
+function toast(msg, ms) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 async function setIgnore(keys, label, on) {
   const c = fetchStore("gagyebu-login-v1"); if (!c) return;
   keys.forEach(k => on ? IGN.set(k, label) : IGN.delete(k));       // show the change at once, undo it if the server says no
@@ -451,6 +473,116 @@ const xsMatch = (r, rules) => { for (const ru of rules) { if (ru.on === false ||
 const xsOf = r => (r._x !== undefined ? r._x : (r._x = xsMatch(r, xsRules())));
 const clearXs = () => ROWS.forEach(r => { delete r._x; });
 
+// ---------- 카테고리 편집 (규칙 · 대분류 묶음, 모두에게 적용) ----------
+let CFG_TREE = {}, CFG_COLORS1 = {}, CAT_DRAFT = null, CE = null, ceTab = "tidy", ceOpen = null;
+const catUser = () => CAT_DRAFT || ((SPREFS.cat && Object.keys(SPREFS.cat).length) ? SPREFS.cat : (fetchStore("g-cat") || {}));
+function applyCats() {   // base categories from the data + the user's rules on top; also rebuilds the 대분류 tree
+  const U = catUser();
+  TREE = U.tree && Object.keys(U.tree).length ? U.tree : CFG_TREE; COLORS1 = {...CFG_COLORS1, ...(U.colors1 || {})}; MID2L1 = {};
+  Object.entries(TREE).forEach(([k, mids]) => mids.forEach(m => MID2L1[m] = k));
+  const rules = (U.rules || []).filter(x => x.kw && x.cat);
+  ROWS.forEach(r => r.items.forEach(it => {
+    if (it._c0 === undefined) { it._c0 = it.category; it._s0 = it.c3; it._t = r.store + " " + it.name; }
+    it.category = it._c0; it.c3 = it._s0;
+    for (const ru of rules) if (it._t.includes(ru.kw)) { it.category = ru.cat; it.c3 = ru.c3 || "기타"; break; }
+  }));
+  CATS = Object.keys(catSums(ROWS)); clearXs();
+}
+const catRefresh = () => { applyCats(); updateUnvBadge(); renderHeader(); show(state.tab, true); };
+const clone = o => JSON.parse(JSON.stringify(o));
+function openCatEditor() {
+  const U = catUser();
+  CE = {tree: clone(TREE), colors1: clone(COLORS1), rules: clone(U.rules || [])}; CAT_DRAFT = CE; ceTab = "tidy"; ceOpen = null;
+  $("catBack").hidden = false; renderCatEditor();
+}
+function closeCatEditor(save) { if (!save) { CAT_DRAFT = null; catRefresh(); } CE = null; $("catBack").hidden = true; }
+const allMids = () => [...new Set([...Object.values(CE.tree).flat(), ...CE.rules.map(r => r.cat)])];
+function c3Options(mid) { return [...new Set(ROWS.flatMap(r => r.items).filter(i => i.category === mid).map(i => i.c3).filter(x => x && x !== "기타"))].sort(); }
+function tidyList() {   // merchants / items that still sit in 미분류 or a 소분류 '기타'
+  const g = new Map();
+  ROWS.forEach(r => r.items.forEach(it => {
+    if (!(it.category === "미분류" || it.c3 === "기타")) return;
+    const kw = r.flat ? r.store : it.name, k = kw + "|" + it.category; const o = g.get(k) || {kw, cat: it.category, c3: it.c3, n: 0, sum: 0};
+    o.n++; o.sum += it.amount; g.set(k, o); }));
+  return [...g.values()].sort((a, b) => Math.abs(b.sum) - Math.abs(a.sum)).slice(0, 30);
+}
+const catSel = (cur, attr) => `<select ${attr}>${allMids().map(m => `<option ${m === cur ? "selected" : ""}>${esc(m)}</option>`).join("")}</select>`;
+function renderCatEditor() {
+  if (!CE) return;
+  const tabs = [["tidy", "정리할 항목"], ["rules", "내 규칙"], ["tree", "대분류"]];
+  let h = `<div class="ce-tabs">${tabs.map(([k, l]) => `<button type="button" data-ct="${k}" class="${ceTab === k ? "on" : ""}">${l}${k === "rules" ? ` ${CE.rules.length}` : ""}</button>`).join("")}</div>`;
+  if (ceTab === "tidy") {
+    const list = tidyList();
+    h += `<p class="cat-modal-note">아직 '미분류'이거나 소분류가 '기타'인 항목이에요. 금액이 큰 것부터 보여줘요. 누르면 어느 분류인지 정할 수 있어요.</p>` +
+      (list.length ? list.map((x, i) => `<div class="ce-card"><div class="top"><div><div class="nm">${esc(x.kw)}</div><div class="sub">${x.n}건 · ${won(x.sum)} · 지금 ${esc(x.cat)} › ${esc(x.c3 || "기타")}</div></div><button class="btn" type="button" data-cto="${i}">${ceOpen === i ? "닫기" : "분류"}</button></div>` +
+        (ceOpen === i ? `<div class="grid2"><label><span>중분류</span>${catSel(x.cat === "미분류" ? allMids().find(m => m !== "미분류") : x.cat, 'data-f="cat"')}</label><label><span>소분류 (비우면 기타)</span><input type="text" data-f="c3" list="c3l" placeholder="예: 정육점"></label></div>
+          <label><span>가게·품목 이름에 들어 있는 말</span><input type="text" data-f="kw" value="${esc(x.kw)}"></label><button class="btn pri" type="button" data-cta="${i}">규칙 추가</button>` : "") + `</div>`).join("") : `<div class="empty">정리할 항목이 없어요.</div>`) +
+      `<datalist id="c3l">${[...new Set(ROWS.flatMap(r => r.items).map(i => i.c3).filter(x => x && x !== "기타"))].map(c => `<option value="${esc(c)}">`).join("")}</datalist>`;
+    renderCatEditor.tidy = list;
+  } else if (ceTab === "rules") {
+    h += `<p class="cat-modal-note">가게나 품목 이름에 '말'이 들어 있으면 정한 분류로 바꿔요. 위에 있는 규칙이 먼저 적용돼요. 맥이 새로 읽은 항목에도 똑같이 적용돼요.</p>` +
+      (CE.rules.length ? CE.rules.map((ru, i) => { const n = ROWS.flatMap(r => r.items).filter(it => it._t.includes(ru.kw)).length;
+        return `<div class="ce-card" data-ri="${i}"><div class="top"><span class="sub">해당 ${n}건</span><button class="mini" type="button" data-crd="${i}">삭제</button></div>
+          <label><span>이름에 들어 있는 말</span><input type="text" data-r="kw" value="${esc(ru.kw)}"></label>
+          <div class="grid2"><label><span>중분류</span>${catSel(ru.cat, 'data-r="cat"')}</label><label><span>소분류</span><input type="text" data-r="c3" list="c3l" value="${esc(ru.c3 || "")}" placeholder="기타"></label></div></div>`; }).join("") : `<div class="empty">만든 규칙이 없어요. '정리할 항목'에서 추가하거나 아래에서 직접 만드세요.</div>`) +
+      `<div class="btns"><button class="btn" type="button" data-cra="1">+ 규칙 직접 추가</button></div><datalist id="c3l">${[...new Set(ROWS.flatMap(r => r.items).map(i => i.c3).filter(x => x && x !== "기타"))].map(c => `<option value="${esc(c)}">`).join("")}</datalist>`;
+  } else {
+    const l1s = Object.keys(CE.tree);
+    h += `<p class="cat-modal-note">대분류 이름과 색을 바꾸고, 중분류를 다른 대분류로 옮기거나 새 중분류를 만들 수 있어요.</p>` +
+      l1s.map(k => `<div class="ce-card" data-l1="${esc(k)}"><div class="top"><input type="text" data-l="name" value="${esc(k)}" style="flex:1"><input type="color" data-l="color" value="${/^#[0-9a-f]{6}$/i.test(CE.colors1[k] || "") ? CE.colors1[k] : "#8a8f98"}" aria-label="색"><button class="mini" type="button" data-cld="1">삭제</button></div>` +
+        (CE.tree[k].map(m => `<div class="ce-mid"><span>${esc(m)}</span><select data-l="move" data-m="${esc(m)}">${l1s.map(o => `<option ${o === k ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></div>`).join("") || `<div class="sub">중분류가 없어요</div>`) +
+        `<div class="ce-add"><input type="text" data-l="newmid" placeholder="새 중분류 이름"><button class="btn" type="button" data-clm="1">추가</button></div></div>`).join("") +
+      `<div class="ce-card"><div class="ce-add"><input type="text" id="newL1" placeholder="새 대분류 이름"><button class="btn" type="button" data-cln="1">대분류 추가</button></div></div>`;
+  }
+  h += `<div class="ce-foot"><button class="btn" type="button" data-cx="reset">기본값으로</button><button class="btn pri" type="button" data-cx="save">저장</button></div>`;
+  const keep = $("catBody").scrollTop; $("catBody").innerHTML = h; $("catBody").scrollTop = keep;
+}
+async function saveCat() {
+  const payload = {tree: CE.tree, colors1: CE.colors1, rules: CE.rules.filter(r => r.kw && r.cat)};
+  const c = fetchStore("gagyebu-login-v1"); const r = c ? await rpc("g_pref_set", {p_name: c.name, p_pin: c.pin, p_key: "cat", p_value: payload}) : {ok: false, error: "bad_login"};
+  if (r.ok) { SPREFS.cat = payload; store("g-cat", undefined); toast("저장했어요 · 모두에게 적용돼요"); }
+  else if (r.code === "PGRST202") { store("g-cat", payload); SPREFS.cat = {}; toast("서버에는 아직 저장 못 했어요 (서버 설정 prefs.sql 필요). 이 폰에는 적용했고, 서버 설정 후 앱을 열면 자동으로 올라가요", 6000); }
+  else { toast(r.error === "not_allowed" ? "바꿀 권한이 없어요" : "저장하지 못했어요"); return; }
+  CAT_DRAFT = null; closeCatEditor(true); catRefresh();
+}
+$("catBody").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b || !CE) return;
+  if (b.dataset.ct) { ceTab = b.dataset.ct; ceOpen = null; renderCatEditor(); return; }
+  if (b.dataset.cto !== undefined) { const i = +b.dataset.cto; ceOpen = ceOpen === i ? null : i; renderCatEditor(); return; }
+  if (b.dataset.cta !== undefined) { const i = +b.dataset.cta, x = renderCatEditor.tidy[i], card = b.closest(".ce-card");
+    const kw = card.querySelector('[data-f="kw"]').value.trim(); if (!kw) return;
+    CE.rules.unshift({kw, cat: card.querySelector('[data-f="cat"]').value, c3: card.querySelector('[data-f="c3"]').value.trim()}); ceOpen = null; catRefresh(); renderCatEditor(); toast("규칙을 추가했어요 · 저장을 눌러야 모두에게 적용돼요"); return; }
+  if (b.dataset.crd !== undefined) { CE.rules.splice(+b.dataset.crd, 1); catRefresh(); renderCatEditor(); return; }
+  if (b.dataset.cra) { CE.rules.unshift({kw: "", cat: allMids()[0], c3: ""}); renderCatEditor(); return; }
+  if (b.dataset.cld) { const k = b.closest(".ce-card").dataset.l1; if (k === "기타") { toast("'기타'는 지울 수 없어요"); return; }
+    CE.tree["기타"] = [...(CE.tree["기타"] || []), ...CE.tree[k]]; delete CE.tree[k]; delete CE.colors1[k]; catRefresh(); renderCatEditor(); return; }
+  if (b.dataset.clm) { const card = b.closest(".ce-card"), k = card.dataset.l1, inp = card.querySelector('[data-l="newmid"]'), name = inp.value.trim();
+    if (!name || allMids().includes(name)) { toast(name ? "이미 있는 이름이에요" : "이름을 적어 주세요"); return; }
+    CE.tree[k].push(name); catRefresh(); renderCatEditor(); return; }
+  if (b.dataset.cln) { const name = $("newL1").value.trim(); if (!name || CE.tree[name]) { toast(name ? "이미 있는 이름이에요" : "이름을 적어 주세요"); return; }
+    CE.tree[name] = []; CE.colors1[name] = hashColor(name).replace(/hsl\((\d+).*/, (m, h) => "#" + [0, 8, 4].map(n => { const c = Math.round(255 * (0.5 + 0.35 * Math.cos((+h / 60 + n / 2) * Math.PI / 3 * 1))); return Math.max(60, Math.min(220, c)).toString(16).padStart(2, "0"); }).join(""));
+    catRefresh(); renderCatEditor(); return; }
+  if (b.dataset.cx === "reset") { CE.tree = clone(CFG_TREE); CE.colors1 = clone(CFG_COLORS1); CE.rules = []; ceOpen = null; catRefresh(); renderCatEditor(); toast("기본값으로 돌렸어요 · 저장을 눌러야 적용돼요"); return; }
+  if (b.dataset.cx === "save") saveCat();
+});
+$("catBody").addEventListener("change", e => {
+  const el = e.target; if (!CE) return;
+  if (el.dataset.r) { const ru = CE.rules[+el.closest(".ce-card").dataset.ri]; if (!ru) return;
+    ru[el.dataset.r] = el.value.trim ? (el.dataset.r === "cat" ? el.value : el.value.trim()) : el.value; catRefresh(); renderCatEditor(); return; }
+  if (el.dataset.l === "name") { const card = el.closest(".ce-card"), old = card.dataset.l1, nu = el.value.trim();
+    if (!nu || nu === old || CE.tree[nu]) { renderCatEditor(); return; }
+    const t = {}; Object.keys(CE.tree).forEach(k => { t[k === old ? nu : k] = CE.tree[k]; }); CE.tree = t; if (CE.colors1[old]) { CE.colors1[nu] = CE.colors1[old]; delete CE.colors1[old]; }
+    catRefresh(); renderCatEditor(); return; }
+  if (el.dataset.l === "color") { CE.colors1[el.closest(".ce-card").dataset.l1] = el.value; catRefresh(); return; }
+  if (el.dataset.l === "move") { const m = el.dataset.m, from = el.closest(".ce-card").dataset.l1, to = el.value;
+    CE.tree[from] = CE.tree[from].filter(x => x !== m); CE.tree[to] = [...CE.tree[to], m]; catRefresh(); renderCatEditor(); return; }
+});
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-catedit]")) { closeSettings(); openCatEditor(); return; }
+  if (e.target.id === "catBack" || e.target.id === "catX") closeCatEditor(false);
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("catBack").hidden) closeCatEditor(false); });
+
 // ---------- 대분류 > 중분류 > 소분류 ----------
 let TREE = {}, COLORS1 = {}, MID2L1 = {};
 const l1 = it => MID2L1[it.category] || "기타";
@@ -470,7 +602,8 @@ const stepsHtml = (path, attr) => `<div class="steps">${[0, 1, 2].map(i => {
   return `${i ? '<span class="arr">›</span>' : ""}<button class="step ${done ? "done" : cur ? "cur" : ""}" type="button" ${done ? `${attr}="${i}"` : "disabled"}><small>${LVN[i]}</small>${esc(name)}</button>`; }).join("")}</div>`;
 
 // ---------- helpers ----------
-const color = c => COLORS[c] || "#8a8f98";
+const hashColor = c => { let h = 0; for (const ch of c) h = (h * 31 + ch.charCodeAt(0)) % 360; return `hsl(${h} 55% 48%)`; };
+const color = c => COLORS[c] || (c === "미분류" ? "#8a8f98" : (COLORS[c] = hashColor(c)));
 const won = n => Math.round(n).toLocaleString("ko-KR") + "원";
 const man = n => { const a = Math.abs(n); return a >= 1e8 ? (n / 1e8).toFixed(1) + "억" : a >= 1e4 ? Math.round(n / 1e4).toLocaleString("ko-KR") + "만" : Math.round(n).toLocaleString("ko-KR"); };
 const dow = d => "일월화수목금토"[new Date(d + "T00:00:00").getDay()];
@@ -540,7 +673,7 @@ function renderSummary() {
   const path = state.dpath.slice(0, 2), d = path.length, by = sumsAt(rows, path);
   const list = Object.entries(by).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   const pos = sum(list.map(x => x[1])) || 1;
-  html += `<div class="card"><h2><span>카테고리 ${Q("cats")}</span><em>눌러서 ${d < 2 ? "안으로 들어가요" : "내역을 봐요"}</em></h2>${stepsHtml(path, "data-up")}<div class="donut-wrap">${donut(by, pos, d, path)}</div>` +
+  html += `<div class="card"><h2><span>카테고리 ${Q("cats")}${CAN_UP ? ` <button class="ign" type="button" data-catedit="1" style="margin-left:6px">편집</button>` : ""}</span><em>눌러서 ${d < 2 ? "안으로 들어가요" : "내역을 봐요"}</em></h2>${stepsHtml(path, "data-up")}<div class="donut-wrap">${donut(by, pos, d, path)}</div>` +
     list.map(([c, v]) => { const b = real && pref("s_catbudget") ? budgetAt(m, d, c) : 0, over = b > 0 && v > b, col = colorAt(c, d, path);
       return `<button class="cat" data-dn="${esc(c)}"><div class="cat-top"><span class="dot" style="background:${col}"></span><span class="cat-name">${esc(c)}</span>
         <span class="cat-pct num">${Math.round(v / pos * 100)}%</span><span class="cat-amt num">${won(v)}</span><span class="chev">›</span></div>
@@ -934,6 +1067,7 @@ const ctl = d => { const [k, type, label, desc, opts] = d, v = pref(k);
 function openSettings(tab) {
   setTab = tab; const sc = SCHEMA[tab]; $("setT").textContent = sc.t;
   let h = sc.g.map(([title, items]) => `<h4>${esc(title)}</h4>` + items.map(ctl).join("")).join("");
+  if (tab === "sum" && CAN_UP) h += `<h4>카테고리</h4><div class="srow"><span>카테고리 편집<small>대분류 묶음, 분류 규칙, 정리할 항목 (모두에게 적용)</small></span><button class="btn" type="button" data-catedit="1">열기</button></div>`;
   if (tab === "sum") { XS_EDIT = JSON.parse(JSON.stringify(xsRules())); h += `<h4>통계에서 뺄 항목 (모두에게 적용)</h4><div id="xsEd"></div>`; }
   h += `<h4>${COMMON[0]}</h4>` + COMMON[1].map(ctl).join("");
   $("setBody").innerHTML = h; $("setBack").hidden = false; if (tab === "sum") renderXsEditor();
@@ -962,7 +1096,7 @@ async function saveXs() {
   readXs(); const rules = XS_EDIT.filter(r => r.min > 0).map(r => ({...r}));
   const c = fetchStore("gagyebu-login-v1"); const r = c ? await rpc("g_pref_set", {p_name: c.name, p_pin: c.pin, p_key: "stat", p_value: {rules}}) : {ok: false, error: "bad_login"};
   if (r.ok) { SPREFS.stat = {rules}; store("g-xsrules", undefined); toast("저장했어요 · 모두에게 적용돼요"); }
-  else if (r.code === "PGRST202") { store("g-xsrules", rules); toast("서버 설정(prefs.sql)이 아직 안 돼 있어 이 폰에만 적용했어요"); }
+  else if (r.code === "PGRST202") { store("g-xsrules", rules); toast("서버에는 아직 저장 못 했어요 (서버 설정 prefs.sql 필요). 이 폰에는 적용했고, 서버 설정 후 앱을 열면 자동으로 올라가요", 6000); }
   else { toast(r.error === "not_allowed" ? "바꿀 권한이 없어요" : "저장하지 못했어요"); return; }
   clearXs(); show(state.tab, true); renderXsEditor();
 }
@@ -1023,15 +1157,14 @@ function applyData(r) {
   COLORS = (r.config && r.config.colors) || {};
   SPREFS = r.prefs || {}; XS_DEFAULT = (r.config && r.config.xs_default) || [];
   if (!applyData.once) { applyData.once = true; state.sort = pref("l_sort"); state.limit = +pref("l_limit"); }
-  TREE = (r.config && r.config.tree) || {}; COLORS1 = (r.config && r.config.colors1) || {}; MID2L1 = {};
-  Object.entries(TREE).forEach(([k, mids]) => mids.forEach(m => MID2L1[m] = k));
+  CFG_TREE = (r.config && r.config.tree) || {}; CFG_COLORS1 = (r.config && r.config.colors1) || {};
   BUDGET = (r.config && r.config.budget) || BUDGET;
   COVER = (r.config && r.config.cover) || "";
   $("updated").textContent = r.config && r.config.updated ? "갱신 " + r.config.updated : "";
   ROWS = Object.keys(r.months || {}).sort().flatMap(k => r.months[k]);
   if (!ROWS.length) { view("load"); $("loadView").textContent = "아직 올라온 가계부 데이터가 없어요."; return; }
   MONTHS = [...new Set(ROWS.map(x => x.date.slice(0, 7)))].sort();
-  CATS = Object.keys(catSums(ROWS));
+  applyCats();
   const sm = fetchStore("g-month"), st = fetchStore("g-tab");
   if (!state.month) state.month = (sm && (sm === "전체" || MONTHS.includes(sm))) ? sm : MONTHS[MONTHS.length - 1];
   CAN_UP = !!r.can_upload;
@@ -1043,6 +1176,15 @@ function applyData(r) {
   renderTrend.started = true;
   updateUnvBadge(); updateGapBadge();
   view("app"); renderHeader(); show(state.tab);
+  syncLocalPrefs();
+}
+async function syncLocalPrefs() {   // choices saved only on this phone (server was not ready) go up as soon as the server accepts them
+  if (!CAN_UP) return; const c = fetchStore(SK); if (!c) return;
+  for (const [lk, key, get] of [["g-xsrules", "stat", v => ({rules: v})], ["g-cat", "cat", v => v]]) {
+    const v = fetchStore(lk); if (!v) continue;
+    const r = await rpc("g_pref_set", {p_name: c.name, p_pin: c.pin, p_key: key, p_value: get(v)});
+    if (r.ok) { SPREFS[key] = get(v); store(lk, undefined); toast("이 폰에만 있던 설정을 서버에 올렸어요 · 이제 모두에게 적용돼요", 4000); applyCats(); show(state.tab, true); }
+  }
 }
 async function load(name, pin, fromForm) {
   if (!ROWS.length) { view("load"); $("loadView").textContent = "불러오는 중…"; }
